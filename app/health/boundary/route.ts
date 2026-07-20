@@ -6,6 +6,8 @@ import { getAccountActivity, listAccounts } from "@/lib/warehouse/repository";
 // customer's systems: it reads the warehouse in bulk and the Salesforce CRM for one account, and
 // reports row counts and latency. If this is green, the boundary is real.
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const started = Date.now();
   try {

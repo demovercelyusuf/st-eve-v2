@@ -1,4 +1,4 @@
-import { warehouseQuery } from "../warehouse/client";
+import { warehousePool } from "../warehouse/client";
 
 // The Salesforce adapter reads the live CRM: the current opportunity, stage, amount, close date,
 // and contacts. In the demo the CRM is mocked as the `sfdc` schema in the same database, but it is
@@ -39,26 +39,23 @@ function toDate(value: unknown): string | null {
 }
 
 export async function getSalesforceAccount(accountId: string): Promise<SalesforceAccount | null> {
-  // The demo path reads the mocked CRM schema. A real deployment swaps this adapter's body for SOQL
-  // over HTTPS against the customer's org, which is the only thing behind this seam that changes.
-  //
-  // These go through the warehouse connection, so the credential reading sfdc is the same leased
-  // reader that reads activity. Worth being explicit that this is a schema boundary and not a
-  // credential boundary: the reader is granted SELECT on both. Splitting it sounds principled and
-  // would be a regression, because lib/dashboard/patch.ts joins across the two in one query.
-  const account = await warehouseQuery(
+  // The demo path reads the mocked CRM schema. A real deployment branches on SALESFORCE_MODE and
+  // calls SALESFORCE_API_URL over HTTPS with a JWT bearer instead.
+  const pool = warehousePool();
+
+  const account = await pool.query(
     `select account_id, name, industry, owner_se from sfdc.accounts where account_id = $1`,
     [accountId],
   );
   if (account.rowCount === 0) return null;
 
   const [opps, contacts] = await Promise.all([
-    warehouseQuery(
+    pool.query(
       `select opp_id, name, stage, amount, close_date, next_step, risk_flag
          from sfdc.opportunities where account_id = $1 order by close_date asc nulls last`,
       [accountId],
     ),
-    warehouseQuery(
+    pool.query(
       `select contact_id, name, title, role, active
          from sfdc.contacts where account_id = $1 order by active desc, name asc`,
       [accountId],

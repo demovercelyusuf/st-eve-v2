@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1784564975980,
-      "tag": "0000_medical_jean_grey",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1784593288321,
-      "tag": "0001_cooing_wild_pack",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1784605935922,
-      "tag": "0002_brief_payload",
+      "when": 1784561463447,
+      "tag": "0000_friendly_bucky",
       "breakpoints": true
     }
   ]

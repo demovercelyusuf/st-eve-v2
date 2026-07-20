@@ -21,6 +21,19 @@ create table activity.dim_account (
   slack_channel text
 );
 
+-- Zendesk-shaped support tickets. ticket_id is the citable activity id (ZD-####).
+create table activity.zendesk_tickets (
+  ticket_id    text primary key,
+  account_id   text not null references activity.dim_account(account_id),
+  created_at   date not null,
+  subject      text not null,
+  priority     text not null,          -- P1 | P2 | P3
+  status       text not null,          -- resolved | open | escalated
+  sla_breached boolean not null default false,
+  csat         real,
+  body         text
+);
+
 -- Gong-shaped call notes. call_id is the citable activity id (GONG-###).
 create table activity.gong_calls (
   call_id             text primary key,
@@ -47,8 +60,12 @@ create table activity.product_usage (
 -- The account-activity mart: one citable row per activity, unioned into a single timeline.
 -- Modeled as a view so the source tables stay the single source of truth (dbt would build this).
 create view activity.fct_account_activity as
-    select call_id as activity_id, account_id, 'call'::text as activity_type,
-           call_date as occurred_at, title as summary, transcript as detail
+    select ticket_id  as activity_id, account_id, 'ticket'::text as activity_type,
+           created_at as occurred_at, subject as summary, body as detail
+      from activity.zendesk_tickets
+  union all
+    select call_id, account_id, 'call'::text,
+           call_date, title, transcript
       from activity.gong_calls
   union all
     select usage_id, account_id, 'usage'::text,
@@ -82,26 +99,3 @@ create table sfdc.contacts (
   role       text,                     -- champion | economic_buyer | influencer | user | blocker
   active     boolean not null default true
 );
-
--- Re-grant the dynamic reader's privileges. This file drops both schemas at the top, and a drop
--- takes every grant on them with it, so without this block a reseed silently disarms Vault: it can
--- still mint a role, that role still connects, and every query it runs comes back permission denied.
--- The failure surfaces as a 500 in the product rather than as an error in the seed, which is the
--- worst possible place to find out.
---
--- steve_reader itself is created once by terraform/bootstrap/01-vault-admin.sql. Only the grants
--- need restoring here, and the guard means the seed still runs on a database where Vault was never
--- set up (local dev against a scratch Postgres, for instance).
-do $$
-begin
-  if exists (select 1 from pg_roles where rolname = 'steve_reader') then
-    grant usage on schema activity, sfdc to steve_reader;
-    grant select on all tables in schema activity, sfdc to steve_reader;
-    alter default privileges in schema activity, sfdc grant select on tables to steve_reader;
-  end if;
-end
-$$;
-
--- Note for whoever hits this next: readers minted before a reseed keep working until their lease
--- expires, because the role still exists and the grants above are restored underneath it. A reader
--- minted during the window between the drop and this block will fail. It self-heals within one TTL.

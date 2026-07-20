@@ -1,1 +1,0 @@
-ALTER TABLE "brief_runs" ADD COLUMN "brief" jsonb;

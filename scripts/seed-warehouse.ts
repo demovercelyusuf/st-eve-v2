@@ -6,17 +6,12 @@ import { ALL_ACCOUNTS } from "../lib/seed/index";
 
 // Seeds the account-activity warehouse (the `activity` and `sfdc` schemas) from the typed seed data.
 // Applies the schema first (a clean drop and rebuild), then inserts every account's dimension row,
-// calls, usage series, and mocked Salesforce records. Support tickets live in Linear now, seeded by
-// scripts/seed-linear.ts from the same AccountSeed. Run with `pnpm seed`.
+// tickets, calls, usage series, and mocked Salesforce records. Run with `pnpm seed`.
 
-// An explicit WAREHOUSE_DATABASE_URL in the environment wins, so the same seeder can target a remote
-// warehouse (RDS) by exporting it. Otherwise fall back to the local dev env file.
-if (!process.env.WAREHOUSE_DATABASE_URL) {
-  try {
-    process.loadEnvFile(".env.local");
-  } catch {
-    // no local env file; fall back to the local default below
-  }
+try {
+  process.loadEnvFile(".env.local");
+} catch {
+  // no local env file; fall back to the environment or the local default below
 }
 
 const connectionString =
@@ -37,6 +32,15 @@ async function main() {
        values ($1,$2,$3,$4,$5,$6,$7)`,
       [a.accountId, a.name, a.industry, a.segment, a.arr, a.seOwner, a.slackChannel],
     );
+
+    for (const t of a.tickets) {
+      await pool.query(
+        `insert into activity.zendesk_tickets
+           (ticket_id, account_id, created_at, subject, priority, status, sla_breached, csat, body)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+        [t.ticketId, a.accountId, t.createdAt, t.subject, t.priority, t.status, t.slaBreached, t.csat, t.body],
+      );
+    }
 
     for (const c of a.calls) {
       await pool.query(

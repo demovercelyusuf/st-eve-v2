@@ -1,8 +1,7 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-import { explainRefusal, resolveAccountForCaller } from "../../lib/auth/access";
-import { callerFromSession } from "../../lib/auth/scope";
 import { getSalesforceAccount } from "../../lib/salesforce/adapter";
+import { findAccountId } from "../../lib/warehouse/repository";
 
 // Reads an account's live Salesforce record through the CRM adapter: the current opportunity, stage,
 // amount, close date, and contacts (including who the champion is and whether they are still active).
@@ -16,14 +15,12 @@ export default defineTool({
       .min(1)
       .describe("Account name or id, for example 'Northwind' or 'ACC-2041'"),
   }),
-  async execute({ account }, ctx) {
-    const caller = callerFromSession(ctx.session);
-    if (!caller) return { found: false, account, message: "Sign in to read the CRM record." };
-
-    const resolved = await resolveAccountForCaller(caller, account);
-    if (!resolved.ok) return { found: false, account, message: explainRefusal(resolved) };
-
-    const record = await getSalesforceAccount(resolved.account.accountId);
+  async execute({ account }) {
+    const accountId = await findAccountId(account);
+    if (!accountId) {
+      return { found: false, account, message: `No account matches "${account}".` };
+    }
+    const record = await getSalesforceAccount(accountId);
     return record ? { found: true, ...record } : { found: false, account };
   },
 });
