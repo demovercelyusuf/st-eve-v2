@@ -50,12 +50,20 @@ export default function Page() {
           <span className="inline-block size-2 rounded-full bg-emerald-500" aria-hidden />
           Vantage Copilot
         </span>
-        <Link
-          href="/chat"
-          className="rounded-md bg-primary px-3.5 py-2 font-medium text-primary-foreground text-sm transition hover:opacity-90"
-        >
-          Open the copilot
-        </Link>
+        <nav className="flex items-center gap-1 text-sm">
+          <Link
+            href="/dashboard"
+            className="rounded-md px-3 py-2 text-muted-foreground transition hover:text-foreground"
+          >
+            Dashboard
+          </Link>
+          <Link
+            href="/chat"
+            className="rounded-md bg-primary px-3.5 py-2 font-medium text-primary-foreground transition hover:opacity-90"
+          >
+            Open the copilot
+          </Link>
+        </nav>
       </header>
 
       <section className="mx-auto max-w-5xl px-6 pt-10 pb-14 sm:pt-16">
