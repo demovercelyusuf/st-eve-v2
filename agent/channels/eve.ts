@@ -1,15 +1,9 @@
+import { none } from "eve/channels/auth";
 import { eveChannel } from "eve/channels/eve";
-import { localDev, placeholderAuth, vercelOidc } from "eve/channels/auth";
 
 export default eveChannel({
-  auth: [
-    // Lets the eve TUI and your Vercel deployments reach the deployed agent.
-    vercelOidc(),
-    // Open on localhost for `eve dev` and the REPL; ignored in production.
-    localDev(),
-    // This placeholder will not allow browser requests in production.
-    // Replace it with your app's auth provider, like Auth.js or Clerk,
-    // or use none() for a public demo.
-    placeholderAuth(),
-  ],
+  // Public at the app layer so the built-in chat works without a login. The deployment sits behind
+  // Vercel Deployment Protection (one password) for the demo, and behind the customer's Okta SSO in
+  // production; the copilot never runs anonymously there.
+  auth: [none()],
 });

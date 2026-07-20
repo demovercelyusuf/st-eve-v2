@@ -1,5 +1,6 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
+import { pgPoolConfig } from "../db/config";
 import * as schema from "./schema";
 
 // A Drizzle client over the app-store: the copilot's own derived state. Like the warehouse pool we
@@ -13,16 +14,7 @@ export function appStore() {
     if (!connectionString) {
       throw new Error("APPSTORE_DATABASE_URL is not set");
     }
-    const pool = new Pool({
-      connectionString,
-      max: 4,
-      idleTimeoutMillis: 10_000,
-      ssl:
-        connectionString.includes("localhost") || connectionString.includes("127.0.0.1")
-          ? undefined
-          : { rejectUnauthorized: false },
-    });
-    db = drizzle(pool, { schema });
+    db = drizzle(new Pool(pgPoolConfig(connectionString)), { schema });
   }
   return db;
 }
