@@ -8,10 +8,14 @@ import { ALL_ACCOUNTS } from "../lib/seed/index";
 // Applies the schema first (a clean drop and rebuild), then inserts every account's dimension row,
 // tickets, calls, usage series, and mocked Salesforce records. Run with `pnpm seed`.
 
-try {
-  process.loadEnvFile(".env.local");
-} catch {
-  // no local env file; fall back to the environment or the local default below
+// An explicit WAREHOUSE_DATABASE_URL in the environment wins, so the same seeder can target a remote
+// warehouse (RDS) by exporting it. Otherwise fall back to the local dev env file.
+if (!process.env.WAREHOUSE_DATABASE_URL) {
+  try {
+    process.loadEnvFile(".env.local");
+  } catch {
+    // no local env file; fall back to the local default below
+  }
 }
 
 const connectionString =
