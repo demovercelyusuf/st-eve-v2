@@ -39,6 +39,27 @@ export function callerFromAttributes(
   return { id: persona.id, name: persona.name, seOwner: persona.seOwner, role: persona.role };
 }
 
+// The shape of what a tool receives, described structurally rather than imported from eve. lib/ stays
+// free of framework imports so the grounding and authorization logic remains portable, which is the
+// same reason lib/grounding/gate.ts takes a plain Set instead of a session.
+export type SessionLike = {
+  readonly auth: {
+    readonly current: {
+      readonly principalId: string;
+      readonly principalType: string;
+      readonly attributes: Readonly<Record<string, string | readonly string[]>>;
+    } | null;
+  };
+};
+
+// A turn with no authenticated principal has no book of accounts, so it reads nothing. Failing closed
+// matters more here than anywhere else in the app: this is the path an anonymous chat request takes.
+export function callerFromSession(session: SessionLike | undefined): Caller | null {
+  const current = session?.auth?.current;
+  if (!current || current.principalType !== "user") return null;
+  return callerFromAttributes(current.principalId, current.attributes);
+}
+
 export function callerAttributes(caller: Caller): Record<string, string> {
   const attributes: Record<string, string> = { role: caller.role };
   if (caller.seOwner) attributes.seOwner = caller.seOwner;

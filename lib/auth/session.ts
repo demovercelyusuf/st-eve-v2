@@ -84,6 +84,18 @@ export async function signSession(persona: Persona, now = Date.now()): Promise<s
   return `${body}.${b64urlEncode(new Uint8Array(signature))}`;
 }
 
+// Pulls our cookie out of a raw Cookie header. Written by hand because the callers that need it are a
+// plain Request in the eve auth walk and a Next request in the proxy, and only one of those has a
+// cookie jar.
+export function sessionCookieFrom(cookieHeader: string | null | undefined): string | undefined {
+  if (!cookieHeader) return undefined;
+  for (const part of cookieHeader.split(";")) {
+    const [name, ...rest] = part.trim().split("=");
+    if (name === SESSION_COOKIE) return rest.join("=");
+  }
+  return undefined;
+}
+
 // Returns null for anything that is not a currently valid token. Callers treat null as anonymous, so
 // a tampered token and a missing one take the same path and neither leaks why it failed.
 export async function verifySession(token: string | undefined, now = Date.now()): Promise<SessionClaims | null> {

@@ -27,11 +27,16 @@ function toDate(value: unknown): string {
   return value instanceof Date ? value.toISOString().slice(0, 10) : String(value);
 }
 
-export async function listAccounts(): Promise<AccountSummary[]> {
+// An owner filter is pushed into the query rather than applied to the results, so an account outside
+// the caller's book is never read in the first place. Null means unscoped, which is how leadership
+// reads everything without a second query.
+export async function listAccounts(ownerSe: string | null = null): Promise<AccountSummary[]> {
   const { rows } = await (await getWarehousePool()).query(
     `select account_id, name, industry, segment, arr, se_owner, slack_channel
        from activity.dim_account
+      where $1::text is null or se_owner = $1
       order by name asc`,
+    [ownerSe],
   );
   return rows.map((r) => ({
     accountId: r.account_id,
@@ -44,15 +49,27 @@ export async function listAccounts(): Promise<AccountSummary[]> {
   }));
 }
 
-export async function findAccountId(query: string): Promise<string | null> {
+export type AccountRef = { accountId: string; name: string; seOwner: string };
+
+// Resolves free text to an account and reports who owns it. Deliberately unscoped: this answers "what
+// did they mean", and lib/auth/access.ts answers "may they see it". Keeping the two apart means the
+// caller can be told an account exists but belongs to someone else, which is more useful inside one
+// company than pretending it does not exist, and it keeps authorization in one auditable place rather
+// than smeared across every query.
+export async function findAccount(query: string): Promise<AccountRef | null> {
   const { rows } = await (await getWarehousePool()).query(
-    `select account_id from activity.dim_account
+    `select account_id, name, se_owner from activity.dim_account
       where account_id = $1 or name ilike '%' || $1 || '%'
       order by (account_id = $1) desc
       limit 1`,
     [query.trim()],
   );
-  return rows[0]?.account_id ?? null;
+  const row = rows[0];
+  return row ? { accountId: row.account_id, name: row.name, seOwner: row.se_owner } : null;
+}
+
+export async function findAccountId(query: string): Promise<string | null> {
+  return (await findAccount(query))?.accountId ?? null;
 }
 
 export async function getAccountActivity(accountId: string): Promise<ActivityRow[]> {
