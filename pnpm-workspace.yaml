@@ -1,3 +1,10 @@
+# esbuild and sharp compile a native binary in a postinstall script. pnpm 11 refuses to run those
+# scripts unless they are named here, and then fails the install outright rather than warning, so an
+# unanswered entry is a broken build rather than a slow one. This file was committed with its
+# placeholder text still in place, which is what took production down.
+#
+# package.json still carries a pnpm.onlyBuiltDependencies block saying the same thing. pnpm 11 reads
+# this file instead, so that block is inert; it stays for older pnpm versions.
 allowBuilds:
-  esbuild: set this to true or false
-  sharp: set this to true or false
+  esbuild: true
+  sharp: true
