@@ -20,8 +20,8 @@ const mono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "st-eve-v2",
-  description: "A Next.js starter for eve agents with AI Elements.",
+  title: "Vantage Revenue-Ops Copilot",
+  description: "A grounded copilot that reconstructs any account into a cited weekly brief.",
 };
 
 export default function RootLayout({ children }: { readonly children: ReactNode }) {
