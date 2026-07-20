@@ -2,6 +2,7 @@ import { defineTool } from "eve/tools";
 import { BriefInput } from "../../lib/brief/schema";
 import { recordBriefRun } from "../../lib/appstore/runs";
 import { enforceCitations } from "../../lib/grounding/gate";
+import { getSalesforceAccount } from "../../lib/salesforce/adapter";
 import { findAccountId, getKnownActivityIds } from "../../lib/warehouse/repository";
 
 // The one and only way to deliver a brief. The model provides its claims here; this tool runs the
@@ -19,7 +20,20 @@ export default defineTool({
       return { shipped: false, reason: `No account matches "${brief.account}".` };
     }
 
-    const knownIds = await getKnownActivityIds(accountId);
+    // Ground against both the warehouse activity ids (ZD-, GONG-, USG-) and the live Salesforce
+    // record ids (the opportunity and its contacts), since a brief legitimately cites CRM facts,
+    // like the deal amount or the departed champion, not just warehouse activity.
+    const [activityIds, sfdc] = await Promise.all([
+      getKnownActivityIds(accountId),
+      getSalesforceAccount(accountId),
+    ]);
+    const knownIds = new Set(activityIds);
+    if (sfdc) {
+      knownIds.add(sfdc.accountId);
+      for (const opp of sfdc.opportunities) knownIds.add(opp.oppId);
+      for (const contact of sfdc.contacts) knownIds.add(contact.contactId);
+    }
+
     const result = enforceCitations(brief, knownIds);
 
     let persisted = true;
