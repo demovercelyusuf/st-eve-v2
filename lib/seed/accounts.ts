@@ -99,7 +99,7 @@ export const CORE_ACCOUNTS: AccountSeed[] = [
     industry: "Marketing Technology",
     segment: "Mid-Market",
     arr: 0,
-    seOwner: "J. Okafor",
+    seOwner: "P. Raman",
     slackChannel: "#acct-cobalt",
     situation: "Stalled new-business deal. Evaluator went dark, close date past, trial usage lapsed.",
     salesforce: {
@@ -139,7 +139,7 @@ export const CORE_ACCOUNTS: AccountSeed[] = [
     industry: "Software",
     segment: "Commercial",
     arr: 96000,
-    seOwner: "J. Okafor",
+    seOwner: "P. Raman",
     slackChannel: "#acct-foundry",
     situation: "New-logo onboarding. Land closed, usage ramping from zero, on plan.",
     salesforce: {
@@ -190,7 +190,7 @@ export const CORE_ACCOUNTS: AccountSeed[] = [
     industry: "Manufacturing",
     segment: "Enterprise",
     arr: 320000,
-    seOwner: "J. Okafor",
+    seOwner: "M. Alvarez",
     slackChannel: "#acct-atlas",
     situation: "Renewal at risk on commercial pressure. Product stable, price and competitor pressure.",
     salesforce: {

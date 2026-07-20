@@ -83,7 +83,7 @@ export const GENERATED_ACCOUNTS: AccountSeed[] = [
     industry: "Energy / Utilities",
     segment: "Enterprise",
     arr: 540000,
-    seOwner: "J. Okafor",
+    seOwner: "P. Raman",
     slackChannel: "#acct-granite-peak",
     situation:
       "Multi-year renewal with an upsell: healthy usage and a strong champion, renewing on a three-year term with a seat and volume expansion, high commit confidence.",
@@ -119,7 +119,7 @@ export const GENERATED_ACCOUNTS: AccountSeed[] = [
     industry: "Robotics / Industrial IoT",
     segment: "Mid-Market",
     arr: 0,
-    seOwner: "J. Okafor",
+    seOwner: "P. Raman",
     slackChannel: "#acct-vireo",
     situation:
       "Active POC trending to a win: eval usage ramping steadily against agreed success criteria, champion engaged, on track to convert to a paid contract.",
@@ -154,7 +154,7 @@ export const GENERATED_ACCOUNTS: AccountSeed[] = [
     industry: "Media / AdTech",
     segment: "Mid-Market",
     arr: 150000,
-    seOwner: "J. Okafor",
+    seOwner: "M. Alvarez",
     slackChannel: "#acct-tallgrass",
     situation:
       "Usage-based billing overage shock: a runaway pipeline spiked API volume and produced a large overage invoice, creating trust and budget friction that threatens the relationship.",
@@ -190,7 +190,7 @@ export const GENERATED_ACCOUNTS: AccountSeed[] = [
     industry: "Biotech / Genomics",
     segment: "Enterprise",
     arr: 300000,
-    seOwner: "J. Okafor",
+    seOwner: "M. Alvarez",
     slackChannel: "#acct-harborview",
     situation:
       "Expansion stalled: the champion moved to a new internal role and a missing Postgres CDC connector blocks the planned production rollout, putting growth on hold.",
