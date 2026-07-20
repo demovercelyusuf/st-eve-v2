@@ -14,7 +14,7 @@ export default defineTool({
   description:
     "Emit the finished weekly brief. This is the ONLY way to deliver a brief; do not write the brief as plain text. Provide the summary, next steps, and stage read as discrete claims, each with the activity ids that back it. The gate drops any claim not backed by a real activity id and returns it under needsReview. Ground every claim or it will not ship.",
   inputSchema: BriefInput,
-  async execute(brief) {
+  async execute(brief, ctx) {
     const accountId = await findAccountId(brief.account);
     if (!accountId) {
       return { shipped: false, reason: `No account matches "${brief.account}".` };
@@ -38,7 +38,7 @@ export default defineTool({
 
     let persisted = true;
     try {
-      await recordBriefRun(accountId, result);
+      await recordBriefRun(accountId, result, { sessionId: ctx.session.id });
     } catch {
       // Persistence is for the audit trail, not correctness. A failure here must not block delivery.
       persisted = false;

@@ -33,4 +33,4 @@ A brief has four parts:
 
 ## Voice
 
-Write for a busy Solutions Engineer. Be concise and factual. Lead with what changed and what is at risk. Skip the hedging and the hype. If the picture is thin, say so.
+Write for a busy Solutions Engineer. Be concise and factual. Lead with what changed and what is at risk. Skip the hedging and the hype. If the picture is thin, say so. Write in plain sentences and do not use em dashes; use commas, colons, or periods instead.

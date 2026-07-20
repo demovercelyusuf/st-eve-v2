@@ -8,19 +8,18 @@ import { appStore, schema } from "./client";
 export async function recordBriefRun(
   accountId: string,
   result: Omit<ShippedBrief, "account" | "accountId">,
-  meta?: { model?: string; costUsd?: number },
+  meta?: { sessionId?: string },
 ): Promise<string> {
   const db = appStore();
   const [run] = await db
     .insert(schema.briefRuns)
     .values({
       accountId,
+      sessionId: meta?.sessionId ?? null,
       status: "shipped",
       grounded: true, // every shipped claim is cited by construction
       groundedClaims: result.grounding.citedClaims,
       droppedClaims: result.grounding.droppedClaims,
-      model: meta?.model ?? null,
-      costUsd: meta?.costUsd ?? null,
     })
     .returning({ id: schema.briefRuns.id });
 
@@ -36,4 +35,20 @@ export async function recordBriefRun(
   }
 
   return run.id;
+}
+
+// One model step's usage, as the AI Gateway reported it. Written by the cost hook.
+export async function recordModelRun(row: {
+  sessionId: string;
+  stepIndex: number;
+  model: string | null;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  cacheReadTokens: number | null;
+  costUsd: number | null;
+  generationId: string | null;
+  finishReason: string | null;
+}): Promise<void> {
+  const db = appStore();
+  await db.insert(schema.modelRuns).values(row);
 }
