@@ -1,5 +1,7 @@
 # Vantage Revenue-Ops Copilot
 
+[![CI](https://github.com/demovercelyusuf/st-eve-v2/actions/workflows/ci.yml/badge.svg)](https://github.com/demovercelyusuf/st-eve-v2/actions/workflows/ci.yml)
+
 A grounded copilot that reconstructs any account into a cited weekly brief for Solutions Engineers. It
 runs on Vercel and reads across a boundary into the systems that stay in place: Salesforce, an
 account-activity warehouse, and Slack. Every claim it makes is backed by a real activity, or it does
