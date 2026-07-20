@@ -1,4 +1,4 @@
-import { warehousePool } from "../warehouse/client";
+import { getWarehousePool } from "../warehouse/client";
 
 // The Salesforce adapter reads the live CRM: the current opportunity, stage, amount, close date,
 // and contacts. In the demo the CRM is mocked as the `sfdc` schema in the same database, but it is
@@ -41,7 +41,7 @@ function toDate(value: unknown): string | null {
 export async function getSalesforceAccount(accountId: string): Promise<SalesforceAccount | null> {
   // The demo path reads the mocked CRM schema. A real deployment branches on SALESFORCE_MODE and
   // calls SALESFORCE_API_URL over HTTPS with a JWT bearer instead.
-  const pool = warehousePool();
+  const pool = await getWarehousePool();
 
   const account = await pool.query(
     `select account_id, name, industry, owner_se from sfdc.accounts where account_id = $1`,
