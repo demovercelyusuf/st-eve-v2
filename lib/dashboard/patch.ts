@@ -1,4 +1,4 @@
-import { warehousePool } from "../warehouse/client";
+import { getWarehousePool } from "../warehouse/client";
 
 // The SE's patch as one read model for the dashboard and the stage board: each account with its
 // primary open opportunity (stage, amount, close date, next step, risk) and a rollup of its warehouse
@@ -30,7 +30,7 @@ function toDate(value: unknown): string | null {
 }
 
 export async function getPatchOverview(): Promise<PatchRow[]> {
-  const { rows } = await warehousePool().query(`
+  const { rows } = await (await getWarehousePool()).query(`
     select
       d.account_id, d.name, d.industry, d.segment, d.arr, d.slack_channel,
       o.opp_id, o.opp_name, o.stage, o.amount, o.close_date, o.next_step, o.risk_flag,

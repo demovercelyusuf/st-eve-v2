@@ -1,4 +1,4 @@
-import { warehousePool } from "./client";
+import { getWarehousePool } from "./client";
 
 // Read-only access to the account-activity warehouse. This is the "read across the boundary in
 // bulk" path: history keyed by account_id, every row carrying a citable activity id. Nothing here
@@ -28,7 +28,7 @@ function toDate(value: unknown): string {
 }
 
 export async function listAccounts(): Promise<AccountSummary[]> {
-  const { rows } = await warehousePool().query(
+  const { rows } = await (await getWarehousePool()).query(
     `select account_id, name, industry, segment, arr, se_owner, slack_channel
        from activity.dim_account
       order by name asc`,
@@ -45,7 +45,7 @@ export async function listAccounts(): Promise<AccountSummary[]> {
 }
 
 export async function findAccountId(query: string): Promise<string | null> {
-  const { rows } = await warehousePool().query(
+  const { rows } = await (await getWarehousePool()).query(
     `select account_id from activity.dim_account
       where account_id = $1 or name ilike '%' || $1 || '%'
       order by (account_id = $1) desc
@@ -56,7 +56,7 @@ export async function findAccountId(query: string): Promise<string | null> {
 }
 
 export async function getAccountActivity(accountId: string): Promise<ActivityRow[]> {
-  const { rows } = await warehousePool().query(
+  const { rows } = await (await getWarehousePool()).query(
     `select activity_id, account_id, activity_type, occurred_at, summary, detail
        from activity.fct_account_activity
       where account_id = $1
@@ -76,7 +76,7 @@ export async function getAccountActivity(accountId: string): Promise<ActivityRow
 // The set of activity ids that actually exist for an account. The grounding gate uses this to
 // verify every citation resolves to a real row before a brief ships.
 export async function getKnownActivityIds(accountId: string): Promise<Set<string>> {
-  const { rows } = await warehousePool().query(
+  const { rows } = await (await getWarehousePool()).query(
     `select activity_id from activity.fct_account_activity where account_id = $1`,
     [accountId],
   );

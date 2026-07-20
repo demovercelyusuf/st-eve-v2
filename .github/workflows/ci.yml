@@ -25,8 +25,8 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      - name: Grounding gate
-        run: node_modules/.bin/tsx scripts/check-gate.ts
+      - name: Test
+        run: node_modules/.bin/vitest run
 
       - name: Build
         run: pnpm build
