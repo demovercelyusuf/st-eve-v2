@@ -1,35 +1,28 @@
 import { type AuthFn, localDev, vercelOidc } from "eve/channels/auth";
 import { eveChannel } from "eve/channels/eve";
-import { callerAttributes, callerFromClaims } from "../../lib/auth/scope";
-import { sessionCookieFrom, verifySession } from "../../lib/auth/session";
+import { OPERATOR } from "../../lib/auth/identity";
 
-// Who may reach the agent over HTTP. This used to be none(), which was survivable while the copilot
-// read one fixed patch, and is not survivable now: the agent reads whatever the caller's book of
-// accounts contains, so an anonymous turn would have to mean either "every account" or "no account"
-// and neither is an honest answer.
+// Who the agent runs as. Steve is single tenant, so every browser caller is the operator, and there
+// is no sign-in step in front of the copilot.
 //
-// appSession() goes first so a signed-in browser resolves to a real person. That principal is what the
-// tools scope on, and it is also what Vercel Connect needs, since a user-subject token cannot be
-// minted without one. So this is not only the front door, it is what lets Steve reach Notion at all.
+// This is not the same as none(), and the difference is the whole reason it exists. none() means the
+// turn has no principal at all, and Vercel Connect cannot mint a user-subject token without one, so
+// Notion would be unreachable. Attaching a fixed principal keeps the agent usable by anyone who can
+// reach the deployment while still giving the outbound credential path somebody to be.
 //
-// vercelOidc() sits behind it for runtime and subagent callers, and localDev() last so a loopback
-// request still works without a cookie. Anything the walk does not recognise falls through to a 401,
-// which is eve's default and the behaviour we want.
-function appSession(): AuthFn<Request> {
-  return async (request) => {
-    const claims = await verifySession(sessionCookieFrom(request.headers.get("cookie")));
-    if (!claims) return null;
-
-    const caller = callerFromClaims(claims);
-    return {
-      attributes: callerAttributes(caller),
-      authenticator: "app-session",
-      principalId: caller.id,
-      principalType: "user",
-    };
-  };
+// Say the tradeoff out loud rather than hiding it: this authenticates nobody. Anyone who can reach
+// the URL can run a turn. That is acceptable for a single-tenant demo behind a URL nobody is given,
+// and the production answer is one line, swapping operator() for oidc() against the customer's Okta,
+// after which principalId is the OIDC subject and the rest of the walk is unchanged.
+function operator(): AuthFn<Request> {
+  return async () => ({
+    attributes: {},
+    authenticator: "operator",
+    principalId: OPERATOR.id,
+    principalType: "user",
+  });
 }
 
 export default eveChannel({
-  auth: [appSession(), vercelOidc(), localDev()],
+  auth: [operator(), vercelOidc(), localDev()],
 });

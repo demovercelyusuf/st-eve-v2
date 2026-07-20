@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { RiskBadge } from "@/app/_components/badges";
 import { Nav } from "@/app/_components/nav";
+import { getCaller } from "@/lib/auth/server";
 import { getPatchOverview } from "@/lib/dashboard/patch";
 import { fmtArr } from "@/lib/format";
 
@@ -19,7 +20,7 @@ function Kpi({ label, value, tone }: { label: string; value: string; tone?: "ris
 }
 
 export default async function DashboardPage() {
-  const patch = await getPatchOverview();
+  const [patch, caller] = await Promise.all([getPatchOverview(), getCaller()]);
   const atRisk = patch.filter((p) => p.riskFlag === "At Risk").length;
   const awaiting = patch.filter((p) => !p.nextStep && p.stage && !CLOSED.has(p.stage)).length;
   const wins = patch.filter((p) => p.stage === "Closed Won").length;
@@ -32,7 +33,8 @@ export default async function DashboardPage() {
         <div>
           <h1 className="font-semibold text-2xl tracking-tight">Your patch</h1>
           <p className="mt-1 text-muted-foreground text-sm">
-            {patch.length} accounts, owned by J. Okafor. Ask the copilot for a brief on any of them.
+            {patch.length} accounts, owned by {caller?.name ?? "you"}. Ask the copilot for a brief on
+            any of them.
           </p>
         </div>
 

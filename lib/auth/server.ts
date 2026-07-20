@@ -1,27 +1,12 @@
-import { cookies } from "next/headers";
-import { type Caller, callerFromClaims } from "./scope";
-import { SESSION_COOKIE, signSession, verifySession } from "./session";
-import { type Persona } from "./personas";
+import { type Caller, callerFor } from "./scope";
 
-// The web surface's half of the session. Kept apart from session.ts because this half imports
-// next/headers, and session.ts is also used by the eve auth walk, where there is no Next request to
-// read from.
-
+// The web surface's view of who is asking. Steve is single tenant, so this resolves to the operator
+// without a cookie, a session store or a login screen.
+//
+// It is still a function rather than an imported constant, and deliberately async, because that is the
+// seam. When identity comes from Okta this reads the verified claims and returns null for an
+// unauthenticated request; every caller already awaits it and already handles null, so the multi-user
+// path is a change inside this file rather than a change to every page.
 export async function getCaller(): Promise<Caller | null> {
-  const claims = await verifySession((await cookies()).get(SESSION_COOKIE)?.value);
-  return claims ? callerFromClaims(claims) : null;
-}
-
-export async function signInAs(persona: Persona): Promise<void> {
-  (await cookies()).set(SESSION_COOKIE, await signSession(persona), {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: Boolean(process.env.VERCEL),
-    path: "/",
-    maxAge: 60 * 60 * 12,
-  });
-}
-
-export async function signOut(): Promise<void> {
-  (await cookies()).delete(SESSION_COOKIE);
+  return callerFor();
 }
