@@ -2,6 +2,7 @@
   "name": "st-eve-v2",
   "version": "0.0.0",
   "type": "module",
+  "packageManager": "pnpm@11.4.0",
   "imports": {
     "#*": "./agent/*",
     "#evals/*": "./evals/*"
