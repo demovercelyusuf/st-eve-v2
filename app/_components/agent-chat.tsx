@@ -19,6 +19,13 @@ import { AgentMessage } from "./agent-message";
 
 const AGENT_NAME = "Steve";
 
+const OPENERS = [
+  "Give me this week's brief for Northwind.",
+  "Is Northwind still blocked on the failover bug?",
+  "What engineering issues are open against Northwind?",
+  "Brief me on Atlas Manufacturing.",
+];
+
 type AgentStatus = ReturnType<typeof useEveAgent>["status"];
 
 export function AgentChat() {
@@ -109,8 +116,27 @@ export function AgentChat() {
         )}
       >
         {isEmpty ? (
-          <div className="flex flex-col items-center gap-3 text-center">
+          <div className="flex flex-col items-center gap-5 text-center">
             <h1 className="font-medium text-5xl tracking-tighter">{AGENT_NAME}</h1>
+            <p className="text-muted-foreground text-sm">
+              Ask about any account on your patch. Every claim comes back with the record that backs
+              it.
+            </p>
+            {/* Canned openers, because a reviewer arriving cold has no idea what this account set
+                contains. Each one exercises a different path: the flagship brief, the fast model,
+                the live Linear read, and a refusal. */}
+            <div className="flex flex-wrap justify-center gap-2">
+              {OPENERS.map((opener) => (
+                <button
+                  className="rounded-full border border-border px-3 py-1.5 text-muted-foreground text-xs transition-colors hover:border-foreground/30 hover:text-foreground"
+                  key={opener}
+                  onClick={() => void agent.send({ message: opener })}
+                  type="button"
+                >
+                  {opener}
+                </button>
+              ))}
+            </div>
           </div>
         ) : null}
         <div className="w-full">{composer}</div>

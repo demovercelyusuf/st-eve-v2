@@ -14,6 +14,8 @@ import {
   KeyRoundIcon,
   XCircleIcon,
 } from "lucide-react";
+import { BriefCard } from "@/app/_components/brief-card";
+import type { RenderableBrief } from "@/lib/brief/render";
 import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
 import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/components/ai-elements/reasoning";
 import {
@@ -101,7 +103,13 @@ function AgentMessagePart({
       return <AttachmentPart part={part} />;
     case "authorization":
       return <AuthorizationPrompt part={part} />;
-    case "dynamic-tool":
+    case "dynamic-tool": {
+      // emit_brief is the product's output, not a tool call to inspect. Rendering it as a collapsed
+      // JSON blob put the flagship artifact behind a disclosure triangle on the surface where an SE
+      // actually works, while Slack got a designed card of the same data.
+      const brief = shippedBrief(part);
+      if (brief) return <BriefCard brief={brief} />;
+
       return (
         <Tool
           defaultOpen={part.state === "approval-requested" || part.state === "approval-responded"}
@@ -123,7 +131,21 @@ function AgentMessagePart({
           </ToolContent>
         </Tool>
       );
+    }
   }
+}
+
+// Narrows a tool part to a shipped brief. Deliberately structural rather than a type import: the tool
+// output crosses the wire as JSON, so what arrives is a shape to check, not a type to trust. A brief
+// that did not ship (an unknown account, a caller with no access) falls through to the normal tool
+// rendering, which is the right place for it.
+function shippedBrief(part: EveDynamicToolPart): RenderableBrief | null {
+  if (part.toolName !== "emit_brief" || part.state !== "output-available") return null;
+
+  const output = part.output as Partial<RenderableBrief> & { shipped?: boolean };
+  if (!output?.shipped || !output.grounding || !Array.isArray(output.nextSteps)) return null;
+
+  return output as RenderableBrief;
 }
 
 function AttachmentPart({ part }: { readonly part: EveFilePart }) {

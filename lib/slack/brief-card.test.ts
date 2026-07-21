@@ -1,6 +1,6 @@
 import { cardToBlocks } from "eve/channels/slack";
 import { describe, expect, it } from "vitest";
-import { type BriefCardInput, briefCard, briefFallbackText, groundingFooter } from "./brief-card";
+import { type RenderableBrief, briefCard, briefFallbackText, groundingFooter } from "./brief-card";
 
 // Rendered through eve's real cardToBlocks rather than asserted against the card object, because the
 // failures that matter here happen at conversion: Slack rejects a message over 50 blocks or a section
@@ -11,7 +11,7 @@ import { type BriefCardInput, briefCard, briefFallbackText, groundingFooter } fr
 // resolved name, so the first real render produced "Weekly brief: undefined". It only showed up
 // because a genuine brief was rendered instead of a fixture someone wrote by hand.
 
-const base: BriefCardInput = {
+const base: RenderableBrief = {
   account: "Northwind Trading Co.",
   accountId: "ACC-2041",
   summary: "The expansion is gated on two failing exit criteria.",
@@ -35,7 +35,7 @@ const base: BriefCardInput = {
   grounding: { shippedClaims: 1, citedClaims: 1, droppedClaims: 0 },
 };
 
-function blocksOf(input: BriefCardInput) {
+function blocksOf(input: RenderableBrief) {
   return cardToBlocks(briefCard(input)) as Array<Record<string, unknown>>;
 }
 
