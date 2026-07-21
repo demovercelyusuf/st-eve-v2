@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Reveal, Rise } from "@/app/_components/motion";
+import { FloatingMascot, Reveal, Rise } from "@/app/_components/motion";
 
 // The public front door. One arc: the problem an SE actually has, the artifact that answers it,
 // the boundary that makes the artifact safe to trust, and one way in.
@@ -98,7 +98,7 @@ export default function Page() {
             className="press rounded-md bg-primary px-3.5 py-2 font-medium text-primary-foreground"
             href="/chat"
           >
-            Open the copilot
+            Launch Steve
           </Link>
         </nav>
       </header>
@@ -114,32 +114,29 @@ export default function Page() {
 
           <Rise delay={60}>
             <h1 className="mt-4 text-balance font-semibold text-4xl tracking-tight sm:text-5xl sm:leading-[1.05]">
-              Deals stall on the technical win long before they stall on price.
+              The copilot that accelerates the technical win in your team&apos;s accounts.
             </h1>
           </Rise>
 
           <Rise delay={120}>
             <p className="mt-5 max-w-xl text-lg text-muted-foreground leading-relaxed">
-              Steve reconstructs an account from your activity warehouse, Salesforce and Linear, then
-              hands the Solutions Engineer the brief: what is blocking the technical win, which record
-              proves it, and what happens next. Every claim carries its citation, or it does not ship.
+              Steve reads across your warehouse, Salesforce and Linear, and hands the SE the brief:
+              what is blocking, which record proves it, what happens next. Every claim carries its
+              citation, or it does not ship.
             </p>
           </Rise>
 
           <Rise delay={180}>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
+            <div className="mt-8 flex flex-wrap items-center gap-4">
               <Link
-                className="press rounded-md bg-primary px-4 py-2.5 font-medium text-primary-foreground text-sm"
+                className="press rounded-md bg-primary px-5 py-3 font-medium text-primary-foreground"
                 href="/chat"
               >
-                Open the copilot
+                Launch Steve
               </Link>
-              <Link
-                className="press rounded-md border border-border px-4 py-2.5 font-medium text-sm transition hover:border-foreground/20"
-                href="/dashboard"
-              >
-                See a patch
-              </Link>
+              <span className="text-muted-foreground text-sm">
+                Grounded in the account&apos;s own records. Every claim cited.
+              </span>
             </div>
           </Rise>
 
@@ -154,11 +151,11 @@ export default function Page() {
                   aria-hidden
                   className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md bg-muted font-medium text-muted-foreground text-xs"
                 >
-                  PR
+                  YA
                 </span>
                 <div className="min-w-0">
                   <p className="text-sm leading-relaxed">
-                    <span className="font-medium">Priya Raman</span>{" "}
+                    <span className="font-medium">Yusuf Abdel-Rahman</span>{" "}
                     <span className="text-muted-foreground text-xs">10:41</span>
                     <br />
                     <span className="font-medium text-emerald-700 dark:text-emerald-400">@Steve</span>{" "}
@@ -174,7 +171,10 @@ export default function Page() {
           </Rise>
         </div>
 
-        <Rise className="float" delay={300}>
+        {/* Steve presenting his own output. The mascot floats and the card holds still: two things
+            drifting at once reads as decoration, one reads as a character showing you something. */}
+        <Rise className="relative" delay={300}>
+          <FloatingMascot className="-top-12 sm:-top-16 -right-1 absolute z-10" />
           <BriefPreview />
         </Rise>
       </section>
@@ -306,9 +306,22 @@ export default function Page() {
               Grounded, durable, and on the record. Every brief is a run you can open.
             </p>
           </div>
-          <p className="text-muted-foreground text-xs">
-            Running on synthetic data. Every account, contact and transcript is fictional.
-          </p>
+          <div className="flex flex-col gap-2 sm:items-end">
+            {/* What is not built, said out loud on the front page. A roadmap chip is cheaper than a
+                reviewer discovering the gap themselves, and it is the same list as the submission's
+                known limitations. */}
+            <span className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
+              On the roadmap
+            </span>
+            <div className="flex flex-wrap gap-2">
+              <RoadmapChip label="Notion as a fourth source" when="Q4" />
+              <RoadmapChip label="Salesforce, live org" when="Q4" />
+              <RoadmapChip label="Okta sign-in" when="Next" />
+            </div>
+            <p className="mt-1 text-muted-foreground text-xs">
+              Running on synthetic data. Every account, contact and transcript is fictional.
+            </p>
+          </div>
         </div>
       </footer>
     </main>
@@ -333,7 +346,7 @@ function BriefPreview() {
           </span>
         </div>
         <p className="mt-0.5 text-muted-foreground text-xs">
-          <span className="font-mono">ACC-NORTHWIND</span> · Technical Validation · 82% confidence
+          <span className="font-mono">ACC-2041</span> · Proposal/Price Quote · 75% confidence
         </p>
       </header>
 
@@ -346,7 +359,7 @@ function BriefPreview() {
             The production network standard forbids egress to public service endpoints, so the
             allow-listed NAT path the pilot runs on will not extend to prod. Engineering has the
             PrivateLink work open against eu-central-1.
-            <Cites delay={520} ids={["GONG-1042", "LIN-412"]} />
+            <Cites delay={520} ids={["GONG-917", "LIN-DEM-12"]} />
           </p>
         </section>
 
@@ -355,9 +368,9 @@ function BriefPreview() {
             Working in your favour
           </p>
           <p className="mt-2 text-sm leading-relaxed">
-            Ingest has held above the pilot threshold four weeks running, and the exit criterion on
-            throughput is already met.
-            <Cites delay={700} ids={["USG-88", "OPP-3301"]} />
+            Four of the six phase 2 exit criteria pass, including schema evolution, the fourteen
+            month backfill and RBAC mapping to their Okta groups.
+            <Cites delay={700} ids={["GONG-902", "OPP-2041-P"]} />
           </p>
         </section>
 
@@ -365,7 +378,7 @@ function BriefPreview() {
           <p className="font-medium text-muted-foreground text-xs uppercase tracking-wide">Next</p>
           <p className="mt-1.5 text-sm leading-relaxed">
             PrivateLink endpoint in eu-central-1 plus a documented split-horizon DNS pattern, to
-            Priya, Thursday.
+            Priya Nandakumar, Thursday.
           </p>
         </section>
 
@@ -374,6 +387,17 @@ function BriefPreview() {
         </p>
       </div>
     </article>
+  );
+}
+
+function RoadmapChip({ label, when }: { readonly label: string; readonly when: string }) {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full border border-border border-dashed px-3 py-1.5 text-muted-foreground text-xs">
+      {label}
+      <span className="rounded-full bg-muted px-1.5 py-0.5 font-medium text-[10px] uppercase tracking-wide">
+        {when}
+      </span>
+    </span>
   );
 }
 

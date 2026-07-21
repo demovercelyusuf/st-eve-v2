@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { CSSProperties, ReactNode } from "react";
 
 // Entrance motion for the landing page, as server components.
@@ -29,6 +30,27 @@ export function Rise({ as: Tag = "div", children, className, delay = 0 }: RisePr
     <Tag className={className ? `rise ${className}` : "rise"} style={{ "--rise-delay": `${delay}ms` } as CSSProperties}>
       {children}
     </Tag>
+  );
+}
+
+// Steve, presenting the brief. A slow idle float on the compositor, so this stays a server component
+// and the landing page keeps its zero-JavaScript property. The reduced-motion query in globals.css
+// stops the float without a hook, which is the whole reason the animation lives in CSS.
+//
+// priority because it sits above the fold: it is the first image a reviewer sees and the one that
+// makes the page feel like a product rather than a document.
+export function FloatingMascot({ className, size = 132 }: { className?: string; size?: number }) {
+  return (
+    <div className={className ? `float ${className}` : "float"}>
+      <Image
+        alt=""
+        className="h-auto w-24 object-contain drop-shadow-xl sm:w-[132px]"
+        height={size}
+        priority
+        src="/steve.png"
+        width={size}
+      />
+    </div>
   );
 }
 
