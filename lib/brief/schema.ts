@@ -56,5 +56,8 @@ export type ShippedBrief = {
     signals: string[];
   };
   needsReview: DroppedClaim[];
+  // Every id that survived the gate, in the order the brief first cited it. Renderers use this to
+  // build a source list without re-deriving what "cited" means.
+  citedIds: string[];
   grounding: { shippedClaims: number; citedClaims: number; droppedClaims: number };
 };

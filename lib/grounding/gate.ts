@@ -13,19 +13,29 @@ import type { BriefInput, DroppedClaim, ShippedBrief } from "../brief/schema";
 export function enforceCitations(
   brief: BriefInput,
   knownIds: Set<string>,
+  // How to describe an id that did not resolve. Injected so the gate stays framework-free and knows
+  // nothing about which sources exist; lib/citations/registry.ts owns that. The gate owns exactly one
+  // question, whether an id is in the set, and the default keeps it usable without the registry.
+  explain: (ids: readonly string[]) => string = (ids) => ids.join(", "),
 ): Omit<ShippedBrief, "account" | "accountId"> {
   const dropped: DroppedClaim[] = [];
+  // The ids that actually shipped, first seen first. Collected here rather than recomputed by callers
+  // because "cited" has one definition and this is where it lives. The Slack renderer needs them to
+  // build a source list without a second read, and the account page needs them to show what the brief
+  // rested on.
+  const citedIds: string[] = [];
 
   function backed(text: string, citations: string[]): boolean {
     if (citations.length === 0) {
-      dropped.push({ text, reason: "no citation to a real activity" });
+      dropped.push({ text, reason: "no citation to a real source" });
       return false;
     }
     const unresolved = citations.filter((id) => !knownIds.has(id));
     if (unresolved.length > 0) {
-      dropped.push({ text, reason: `citation does not resolve: ${unresolved.join(", ")}` });
+      dropped.push({ text, reason: `citation does not resolve. ${explain(unresolved)}` });
       return false;
     }
+    for (const id of citations) if (!citedIds.includes(id)) citedIds.push(id);
     return true;
   }
 
@@ -46,6 +56,7 @@ export function enforceCitations(
       signals: signals.map((s) => s.text),
     },
     needsReview: dropped,
+    citedIds,
     // Every claim that ships is cited, so shipped and cited are equal by construction. dropped is the
     // count the gate caught and withheld.
     grounding: { shippedClaims, citedClaims: shippedClaims, droppedClaims: dropped.length },

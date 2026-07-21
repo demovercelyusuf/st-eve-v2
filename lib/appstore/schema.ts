@@ -3,6 +3,7 @@ import {
   index,
   integer,
   pgTable,
+  primaryKey,
   real,
   text,
   timestamp,
@@ -63,6 +64,34 @@ export const citations = pgTable(
     status: text("status").notNull(), // cited | dropped
   },
   (t) => [index("citations_brief_idx").on(t.briefRunId)],
+);
+
+// What the agent actually read from a live system during one run.
+//
+// Warehouse rows are citable because they exist in fct_account_activity, which the gate can check
+// against directly. Notion pages and Linear issues have no such table on our side, so citability has
+// to come from somewhere else: a read tool records what it returned, and the gate resolves citations
+// against that.
+//
+// Scoping by session and account is the point, not bookkeeping. It means the model may only cite what
+// it actually read, in this run, for this account. An id carried over from another account earlier in
+// the same Slack thread does not resolve, and a plausible-looking issue key the model composed from
+// memory does not either.
+export const evidence = pgTable(
+  "evidence",
+  {
+    sessionId: text("session_id").notNull(),
+    citationId: text("citation_id").notNull(),
+    accountId: text("account_id").notNull(),
+    source: text("source").notNull(), // linear | notion
+    label: text("label").notNull(),
+    url: text("url"),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.sessionId, t.citationId] }),
+    index("evidence_lookup_idx").on(t.sessionId, t.accountId),
+  ],
 );
 
 // At-least-once Slack delivery is deduped on this key so a retried post does not double-send.

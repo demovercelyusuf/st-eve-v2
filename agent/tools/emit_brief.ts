@@ -3,6 +3,8 @@ import { BriefInput } from "../../lib/brief/schema";
 import { recordBriefRun } from "../../lib/appstore/runs";
 import { explainRefusal, resolveAccountForCaller } from "../../lib/auth/access";
 import { callerFromSession } from "../../lib/auth/scope";
+import { describeUnresolved } from "../../lib/citations/registry";
+import { readEvidence } from "../../lib/evidence/ledger";
 import { enforceCitations } from "../../lib/grounding/gate";
 import { getSalesforceAccount } from "../../lib/salesforce/adapter";
 import { getKnownActivityIds } from "../../lib/warehouse/repository";
@@ -31,12 +33,20 @@ export default defineTool({
     }
     const accountId = resolved.account.accountId;
 
-    // Ground against both the warehouse activity ids (ZD-, GONG-, USG-) and the live Salesforce
-    // record ids (the opportunity and its contacts), since a brief legitimately cites CRM facts,
-    // like the deal amount or the departed champion, not just warehouse activity.
-    const [activityIds, sfdc] = await Promise.all([
+    // Three ways an id becomes citable, and they are genuinely different claims.
+    //
+    // A warehouse id is citable because a row exists in fct_account_activity. A Salesforce id is
+    // citable because the adapter returned that record just now. A Linear or Notion id is citable
+    // because a read tool recorded it in the evidence ledger during this session, for this account,
+    // which is the only check available for a system we hold no table for.
+    //
+    // That last one is stricter than it looks. It means the model may cite only what it actually
+    // read, in this run, for this account. An id carried over from another account earlier in the
+    // same Slack thread does not resolve, and neither does an issue key composed from memory.
+    const [activityIds, sfdc, live] = await Promise.all([
       getKnownActivityIds(accountId),
       getSalesforceAccount(accountId),
+      readEvidence(ctx.session.id, accountId),
     ]);
     const knownIds = new Set(activityIds);
     if (sfdc) {
@@ -44,8 +54,14 @@ export default defineTool({
       for (const opp of sfdc.opportunities) knownIds.add(opp.oppId);
       for (const contact of sfdc.contacts) knownIds.add(contact.contactId);
     }
+    for (const id of live.keys()) knownIds.add(id);
 
-    const result = enforceCitations(brief, knownIds);
+    const result = enforceCitations(brief, knownIds, describeUnresolved);
+
+    // The clickable half of a citation. Warehouse and Salesforce ids render as plain chips because
+    // they resolve inside this app; Linear and Notion carry a url back to the record, so an engineer
+    // who has never heard of Steve can click the evidence.
+    const sources = result.citedIds.map((id) => live.get(id) ?? { citationId: id, source: null });
 
     let persisted = true;
     try {
@@ -55,6 +71,6 @@ export default defineTool({
       persisted = false;
     }
 
-    return { shipped: true, accountId, persisted, ...result };
+    return { shipped: true, accountId, persisted, sources, ...result };
   },
 });
