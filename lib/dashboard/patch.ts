@@ -9,8 +9,8 @@ import { warehouseQuery } from "../warehouse/client";
 // single account's live CRM read still goes through the Salesforce adapter.
 //
 // Linear joins here rather than in the page because "how loaded is this account" is a property of the
-// patch, not of a component. The table sorts on it and the board colours a card by it, and neither
-// surface should be the place that knows how to reach Linear.
+// patch, not of a component. The table sorts on it, and that surface should not be the place that
+// knows how to reach Linear.
 
 export type PatchRow = {
   accountId: string;
@@ -28,9 +28,6 @@ export type PatchRow = {
   riskFlag: string | null;
   activityCount: number;
   lastActivity: string | null;
-  // Open engineering issues labelled with this account. null means Linear was not consulted, which is
-  // a different fact from zero and has to survive all the way to the cell that renders it.
-  openIssues: number | null;
 };
 
 // What was read and what was not, so a surface can say "Linear was not consulted" instead of
@@ -41,9 +38,9 @@ export type EngineeringCoverage = {
   complete: boolean;
 };
 
-export type PatchOverview = {
-  rows: PatchRow[];
-  engineering: EngineeringCoverage;
+export type PatchEngineering = EngineeringCoverage & {
+  /** Open issue count per account id. Empty when Linear did not answer. */
+  openByAccount: Record<string, number>;
 };
 
 function toDate(value: unknown): string | null {
@@ -51,11 +48,17 @@ function toDate(value: unknown): string | null {
   return value instanceof Date ? value.toISOString().slice(0, 10) : String(value);
 }
 
-// Deduped per request with react's cache. The patch view renders the KPI row and the account table
-// from separate Suspense children, so an uncached export runs this twice: two warehouse round trips
-// plus two Linear calls per page load. Worse than the cost, the two reads can disagree, and then the
-// summary and the table contradict each other on the same screen.
-export const getPatchOverview = cache(async (): Promise<PatchOverview> => {
+// Split in two on purpose, and both halves deduped per request with react's cache.
+//
+// The KPI row needs the warehouse and nothing else. Linear needs the account ids, so it can only run
+// after the SQL, and it is a live call over someone else's API. Behind a single boundary that made
+// four numbers wait on a network round trip they do not depend on, which was most of the delay
+// between pressing Launch and seeing anything: measured 2.7s cold against 0.36s warm.
+//
+// Now the numbers render as soon as the warehouse answers and the table follows when Linear does.
+// The cache is what keeps that honest: both halves read the same rows, so the summary and the table
+// cannot disagree, and the SQL still runs once per request rather than once per boundary.
+export const getPatchRows = cache(async (): Promise<PatchRow[]> => {
   const { rows } = await warehouseQuery(`
     select
       d.account_id, d.name, d.industry, d.segment, d.arr, d.slack_channel,
@@ -77,13 +80,7 @@ export const getPatchOverview = cache(async (): Promise<PatchOverview> => {
     order by (o.risk_flag = 'At Risk') desc, d.name asc
   `);
 
-  // Chained rather than parallel, because the label set is the account id set and we only learn it
-  // from the query above. The cost of chaining is bounded by readPatchIssueCounts' own budget, so the
-  // worst case is the SQL round trip plus two seconds, not an open-ended wait.
-  const engineering = await readPatchIssueCounts(rows.map((r) => r.account_id as string));
-
-  return {
-    rows: rows.map((r) => ({
+  return rows.map((r): PatchRow => ({
       accountId: r.account_id,
       name: r.name,
       industry: r.industry,
@@ -99,10 +96,22 @@ export const getPatchOverview = cache(async (): Promise<PatchOverview> => {
       riskFlag: r.risk_flag,
       activityCount: r.activity_count,
       lastActivity: toDate(r.last_activity),
-      // Absent from the map means no open issues, but only if Linear answered at all. When it did
-      // not, every row is null, so nothing on screen can imply a clean account we never checked.
-      openIssues: engineering.connected ? (engineering.openByAccount[r.account_id] ?? 0) : null,
-    })),
-    engineering: { connected: engineering.connected, complete: engineering.complete },
+    }));
+});
+
+// Linear, chained after the rows because the label set is the account id set and we only learn it
+// from the SQL. The cost of chaining is bounded by readPatchIssueCounts' own budget, so the worst
+// case is the round trip plus two seconds rather than an open-ended wait, and nothing on the page
+// waits for it except the column it fills.
+export const getPatchEngineering = cache(async (): Promise<PatchEngineering> => {
+  const rows = await getPatchRows();
+  const counts = await readPatchIssueCounts(rows.map((r) => r.accountId));
+
+  return {
+    connected: counts.connected,
+    complete: counts.complete,
+    // Absent from the map means no open issues, but only if Linear answered at all. When it did not,
+    // every row is null, so nothing on screen can imply a clean account we never checked.
+    openByAccount: counts.connected ? counts.openByAccount : {},
   };
 });

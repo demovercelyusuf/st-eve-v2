@@ -42,6 +42,7 @@ export default function Page() {
         <Link
           className="press rounded-md bg-primary px-3.5 py-2 font-medium text-primary-foreground text-sm"
           href="/dashboard"
+          prefetch
         >
           Launch Steve
         </Link>
@@ -69,9 +70,13 @@ export default function Page() {
         </Rise>
 
         <Rise className="mt-8" delay={180}>
+          {/* Prefetched. The workspace carries the copilot runtime, which this page deliberately
+              does not load, so the first click into it is the one navigation worth paying for early.
+              Both CTAs point at the same route, so the second request is served from cache. */}
           <Link
             className="press inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 font-medium text-primary-foreground"
             href="/dashboard"
+            prefetch
           >
             Launch Steve
             <span aria-hidden>&rarr;</span>

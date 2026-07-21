@@ -3,6 +3,7 @@ import { Suspense, type ReactNode } from "react";
 import { MobileNav } from "./mobile-nav";
 import { Wordmark } from "./wordmark";
 import { ProductTour, TourButton } from "./product-tour";
+import { PageTransition } from "./page-transition";
 import { NavLinks, SidebarNav } from "./sidebar-nav";
 import { ThemeSwitcher } from "./theme-switcher";
 
@@ -53,7 +54,15 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Suspense>
         </aside>
 
-        <main className="min-w-0 flex-1">{children}</main>
+        <main className="min-w-0 flex-1">
+          {/* The fallback is the page itself, unanimated. PageTransition reads usePathname, which
+              cannot appear in a prerendered tree, so without this the whole workspace drops out of
+              the static shell to add a fade. The prerendered HTML carries the real content and the
+              transition attaches on hydration, which is the only moment it can matter anyway. */}
+          <Suspense fallback={children}>
+            <PageTransition>{children}</PageTransition>
+          </Suspense>
+        </main>
       </div>
 
       <ProductTour />

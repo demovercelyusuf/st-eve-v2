@@ -56,18 +56,7 @@ export function callerFromSession(session: SessionLike | undefined): Caller | nu
   return callerFor();
 }
 
-export function callerAttributes(caller: Caller): Record<string, string> {
-  return caller.seOwner ? { seOwner: caller.seOwner } : {};
-}
-
 export function canSeeOwner(caller: Caller, seOwner: string | null): boolean {
   if (caller.seOwner === null) return true;
   return seOwner === caller.seOwner;
-}
-
-// The scope as the repository wants it: null means no predicate. Returning this rather than a SQL
-// fragment keeps the query text in the repository and keeps this module free of anything database
-// shaped.
-export function ownerFilter(caller: Caller): string | null {
-  return caller.seOwner;
 }

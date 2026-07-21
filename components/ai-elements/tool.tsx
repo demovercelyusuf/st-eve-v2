@@ -15,7 +15,17 @@ import {
 import type { ComponentProps, ReactNode } from "react";
 import { isValidElement } from "react";
 
-import { CodeBlock } from "./code-block";
+import dynamic from "next/dynamic";
+
+// Lazy, and this is the single biggest thing on the bundle. CodeBlock pulls shiki, which is 792 KiB
+// of grammars and themes, and a static import put all of it on every route that mounts the copilot,
+// including ones that never render a tool call. It only ever highlights the JSON inside an expanded
+// tool call, so it loads when somebody expands one.
+const CodeBlock = dynamic(() => import("./code-block").then((m) => m.CodeBlock), {
+  loading: () => (
+    <div className="h-24 animate-pulse rounded-md border border-border bg-muted/40" />
+  ),
+});
 
 export type ToolProps = ComponentProps<typeof Collapsible>;
 

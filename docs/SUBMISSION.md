@@ -37,7 +37,7 @@ That failure is the design constraint, not a footnote. Everything below exists t
 
 **What moves to Vercel:** the copilot. It reads across the line and drafts. The only thing it writes anywhere is a brief posted into a Slack channel, on request. No system of record is ever written to.
 
-The test a security team applies is "if this vendor vanished tomorrow, are we whole?" Under this design the answer is yes. Every system of record is untouched and complete; Vercel holds derived state only: run metadata, per-run cost, the citation index, an evidence ledger of what each live read returned in that run, and a receipt per Slack delivery.
+The test a security team applies is "if this vendor vanished tomorrow, are we whole?" Under this design the answer is yes. Every system of record is untouched and complete; Vercel holds derived state only: run metadata, per-run cost, the citation index, and an evidence ledger of what each live read returned in that run.
 
 ### Target-state flow
 
