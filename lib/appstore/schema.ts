@@ -2,6 +2,7 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   pgTable,
   primaryKey,
   real,
@@ -9,6 +10,7 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
+import type { RenderableBrief } from "../brief/render";
 
 // The copilot's own derived state, kept separate from the customer's systems of record. Nothing
 // here is authoritative: it records what the copilot did so the app can show per-run cost, prove
@@ -25,6 +27,21 @@ export const briefRuns = pgTable(
     grounded: boolean("grounded"),
     groundedClaims: integer("grounded_claims"),
     droppedClaims: integer("dropped_claims"),
+    // The shipped brief itself, exactly as both renderers consume it.
+    //
+    // Nothing persisted the brief text before this, so an SE who generated one in Slack had no way to
+    // see it in the app, and the account page could only report that a run had happened. One column
+    // is the whole fix.
+    //
+    // Stored whole as jsonb rather than normalised into claim rows, and that is a deliberate limit on
+    // scope. This is a rendered artifact, not queryable state: the gate has already decided which
+    // claims exist and in what order, and splitting them across tables would create a second place
+    // where "what the brief says" is decided, which is the one thing this product cannot afford.
+    // The citations table stays as it is, holding what was withheld and why.
+    //
+    // Nullable because a row is written before this shape existed and because status can be running
+    // or failed, neither of which has a brief to store.
+    brief: jsonb("brief").$type<RenderableBrief>(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("brief_runs_account_idx").on(t.accountId), index("brief_runs_session_idx").on(t.sessionId)],

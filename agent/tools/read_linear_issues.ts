@@ -4,7 +4,12 @@ import { z } from "zod";
 import { explainRefusal, resolveAccountForCaller } from "../../lib/auth/access";
 import { callerFromSession } from "../../lib/auth/scope";
 import { recordEvidence } from "../../lib/evidence/ledger";
-import { LinearUnauthorized, fetchAccountIssues, linearCitationId } from "../../lib/linear/issues";
+import {
+  LINEAR_CONNECTOR,
+  LinearUnauthorized,
+  fetchAccountIssues,
+  linearCitationId,
+} from "../../lib/linear/issues";
 
 // Engineering's view of the account: what the customer's evaluation actually raised against us.
 //
@@ -16,8 +21,6 @@ import { LinearUnauthorized, fetchAccountIssues, linearCitationId } from "../../
 //
 // The credential is the asking user's own, because connect() defaults to a user subject. Steve sees
 // the issues that person can already see, which is a permission model we inherit rather than build.
-
-const LINEAR_CONNECTOR = "linear/byzantine-pebble";
 
 // App-scoped, not user-scoped, and that choice is what makes Linear work at all here.
 //

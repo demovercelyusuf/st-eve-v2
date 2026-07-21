@@ -35,6 +35,32 @@ async function gql<T>(query: string, variables: Record<string, unknown> = {}): P
 // urgent is a claim about someone's week that a seeding script has no standing to make.
 const PRIORITY: Record<string, number> = { P1: 2, P2: 3, P3: 4 };
 
+// Where each ticket lands in the team's workflow. Without this every issue is created in the team's
+// default state, so a resolved ticket sits in the backlog looking open. That is not cosmetic: the
+// healthy accounts are healthy precisely because their issues are closed, and an all-open queue
+// erases the contrast the demo is built on.
+//
+// State ids are read at runtime rather than hardcoded, because they belong to the customer's team and
+// a hardcoded id would break the moment this ran against a different workspace.
+const STATE_FOR: Record<string, string> = {
+  resolved: "completed",
+  open: "unstarted",
+  escalated: "started",
+};
+
+async function workflowStates(): Promise<Record<string, string>> {
+  const data = await gql<{ workflowStates: { nodes: Array<{ id: string; type: string; name: string }> } }>(
+    `query { workflowStates(first: 50) { nodes { id type name } } }`,
+  );
+  const byType: Record<string, string> = {};
+  for (const node of data.workflowStates.nodes) {
+    // First match wins. A team can have several states of one type (Backlog and Todo are both
+    // unstarted); the earliest is the one Linear itself treats as the default for that type.
+    if (!byType[node.type]) byType[node.type] = node.id;
+  }
+  return byType;
+}
+
 async function labelFor(accountId: string): Promise<string> {
   const existing = await gql<{ issueLabels: { nodes: Array<{ id: string; name: string }> } }>(
     `query($name:String!){ issueLabels(filter:{name:{eq:$name}}, first:1){ nodes { id name } } }`,
@@ -49,26 +75,45 @@ async function labelFor(accountId: string): Promise<string> {
   return created.issueLabelCreate.issueLabel.id;
 }
 
-async function existingTitles(labelId: string): Promise<Set<string>> {
-  const found = await gql<{ issues: { nodes: Array<{ title: string }> } }>(
-    `query($id:ID!){ issues(filter:{labels:{id:{eq:$id}}}, first:100){ nodes { title } } }`,
+type ExistingIssue = { id: string; title: string; stateId: string };
+
+async function existingIssues(labelId: string): Promise<Map<string, ExistingIssue>> {
+  const found = await gql<{ issues: { nodes: Array<{ id: string; title: string; state: { id: string } }> } }>(
+    `query($id:ID!){ issues(filter:{labels:{id:{eq:$id}}}, first:100){ nodes { id title state { id } } } }`,
     { id: labelId },
   );
-  return new Set(found.issues.nodes.map((n) => n.title));
+  return new Map(found.issues.nodes.map((n) => [n.title, { id: n.id, title: n.title, stateId: n.state.id }]));
 }
 
 async function main() {
+  const states = await workflowStates();
   let created = 0;
+  let reconciled = 0;
   let skipped = 0;
 
   for (const account of ALL_ACCOUNTS) {
     const labelId = await labelFor(account.accountId);
-    const already = await existingTitles(labelId);
+    const already = await existingIssues(labelId);
 
     for (const ticket of account.tickets) {
       const title = ticket.subject;
-      if (already.has(title)) {
-        skipped += 1;
+      const wanted = states[STATE_FOR[ticket.status] ?? "unstarted"];
+
+      // Reconcile rather than skip. An issue created before the status mapping existed sits in the
+      // team's default state, so skipping it leaves a resolved ticket looking open forever and a
+      // re-run can never repair it. Only the state is corrected: the title and body are the ticket's
+      // own words and a human may have improved them since.
+      const found = already.get(title);
+      if (found) {
+        if (found.stateId !== wanted) {
+          await gql(
+            `mutation($id:String!,$input:IssueUpdateInput!){ issueUpdate(id:$id, input:$input){ success } }`,
+            { id: found.id, input: { stateId: wanted } },
+          );
+          reconciled += 1;
+        } else {
+          skipped += 1;
+        }
         continue;
       }
 
@@ -80,7 +125,7 @@ async function main() {
         ticket.body,
         "",
         `**Account:** ${account.name} (\`${account.accountId}\`)`,
-        `**Severity:** ${ticket.priority} · ${ticket.status}${ticket.slaBreached ? " · SLA breached" : ""}`,
+        `**Severity:** ${ticket.priority}${ticket.slaBreached ? " · SLA breached" : ""}`,
         `**Raised:** ${ticket.createdAt}`,
         "",
         "_Seeded for the Steve demo._",
@@ -95,6 +140,7 @@ async function main() {
             description,
             labelIds: [labelId],
             priority: PRIORITY[ticket.priority] ?? 3,
+            stateId: wanted,
           },
         },
       );
@@ -104,7 +150,7 @@ async function main() {
     console.log(`${account.accountId} ${account.name}: ${account.tickets.length} tickets`);
   }
 
-  console.log(`\ncreated ${created}, already present ${skipped}`);
+  console.log(`\ncreated ${created}, state corrected ${reconciled}, already correct ${skipped}`);
 }
 
 main().catch((error) => {

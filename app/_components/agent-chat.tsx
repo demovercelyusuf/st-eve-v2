@@ -1,9 +1,8 @@
 "use client";
 
-import type { UserContent } from "ai";
 import Link from "next/link";
-import { useEveAgent } from "eve/react";
 import { AlertCircleIcon } from "lucide-react";
+import { useEffect } from "react";
 import {
   Conversation,
   ConversationContent,
@@ -17,6 +16,9 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { cn } from "@/lib/utils";
 import { AgentMessage } from "./agent-message";
+import { AgentStatusDot } from "./agent-status-dot";
+import { useCopilot } from "./copilot-provider";
+import { isSendable, toAgentMessage } from "./prompt-message";
 
 const AGENT_NAME = "Steve";
 
@@ -27,36 +29,23 @@ const OPENERS = [
   "Brief me on Atlas Manufacturing.",
 ];
 
-type AgentStatus = ReturnType<typeof useEveAgent>["status"];
-
 export function AgentChat() {
-  const agent = useEveAgent();
+  // The session comes from the root layout rather than from a useEveAgent call here, so this page and
+  // the floating dock are one conversation. An SE who asks in the dock and then opens the full view
+  // is resizing a window, not starting again.
+  const { agent, markRead } = useCopilot();
   const isBusy = agent.status === "submitted" || agent.status === "streaming";
   const isEmpty = agent.data.messages.length === 0;
 
+  // This page is the transcript at full size, so nothing on it can be unread. Without this the dock's
+  // launcher would still be wearing an unread dot after the SE navigated away from here.
+  useEffect(() => {
+    markRead();
+  }, [agent.data.messages, markRead]);
+
   const handleSubmit = async (message: PromptInputMessage) => {
-    const text = message.text.trim();
-    if ((text.length === 0 && message.files.length === 0) || isBusy) return;
-
-    if (message.files.length === 0) {
-      await agent.send({ message: text });
-      return;
-    }
-
-    const parts: UserContent = [];
-    if (text.length > 0) {
-      parts.push({ text, type: "text" });
-    }
-    for (const file of message.files) {
-      parts.push({
-        data: file.url,
-        filename: file.filename,
-        mediaType: file.mediaType,
-        type: "file",
-      });
-    }
-
-    await agent.send({ message: parts });
+    if (!isSendable(message) || isBusy) return;
+    await agent.send({ message: toAgentMessage(message) });
   };
 
   const composer = (
@@ -81,7 +70,7 @@ export function AgentChat() {
         {isEmpty ? null : (
           <span className="flex min-w-0 items-center gap-2">
             <span className="truncate text-muted-foreground text-sm">{AGENT_NAME}</span>
-            <StatusDot status={agent.status} />
+            <AgentStatusDot status={agent.status} />
           </span>
         )}
       </header>
@@ -152,31 +141,5 @@ export function AgentChat() {
         <div className="w-full">{composer}</div>
       </div>
     </main>
-  );
-}
-
-function StatusDot({ status }: { readonly status: AgentStatus }) {
-  const isLive = status === "submitted" || status === "streaming";
-  const tone =
-    status === "error"
-      ? "bg-destructive"
-      : isLive
-        ? "bg-emerald-500"
-        : status === "ready"
-          ? "bg-muted-foreground"
-          : "bg-muted-foreground/50";
-
-  return (
-    <span className="relative flex size-1">
-      {isLive ? (
-        <span
-          className={cn(
-            "absolute inline-flex size-full animate-ping rounded-full opacity-75",
-            tone,
-          )}
-        />
-      ) : null}
-      <span className={cn("relative inline-flex size-1 rounded-full transition-colors", tone)} />
-    </span>
   );
 }

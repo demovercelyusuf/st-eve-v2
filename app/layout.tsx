@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
+import { CopilotDock } from "@/app/_components/copilot-dock";
+import { CopilotProvider } from "@/app/_components/copilot-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import "./globals.css";
@@ -42,11 +44,26 @@ export const metadata: Metadata = {
   },
 };
 
+// The copilot is mounted here and nowhere else. eve's session lives in a ref inside the component
+// that calls useEveAgent, so mounting it per page would start a new conversation on every navigation
+// and drop any turn still streaming. The root layout is the only place the App Router keeps mounted
+// across route changes, which makes it the only mount point where "available from anywhere" is true.
+//
+// The dock is a sibling of children rather than a wrapper around it: it renders fixed and floating,
+// and nesting the whole app inside it would buy nothing. Both are client components under a static,
+// prerendered layout, and neither reads request-time data, so the shell stays cacheable.
 export default function RootLayout({ children }: { readonly children: ReactNode }) {
   return (
     <html className={cn(sans.variable, mono.variable)} lang="en">
       <body>
-        <TooltipProvider>{children}</TooltipProvider>
+        <TooltipProvider>
+          <CopilotProvider>
+            {children}
+            <Suspense fallback={null}>
+              <CopilotDock />
+            </Suspense>
+          </CopilotProvider>
+        </TooltipProvider>
       </body>
     </html>
   );

@@ -65,7 +65,14 @@ export default defineTool({
 
     let persisted = true;
     try {
-      await recordBriefRun(accountId, result, { sessionId: ctx.session.id });
+      // The name and the source list travel with the run. The gate works on claims and knows nothing
+      // about accounts or urls, so without these two the stored brief would render on the account page
+      // with an undefined title and citations that had lost their links back to Linear.
+      await recordBriefRun(accountId, result, {
+        sessionId: ctx.session.id,
+        account: resolved.account.name,
+        sources,
+      });
     } catch {
       // Persistence is for the audit trail, not correctness. A failure here must not block delivery.
       persisted = false;

@@ -72,6 +72,34 @@ export async function findAccountId(query: string): Promise<string | null> {
   return (await findAccount(query))?.accountId ?? null;
 }
 
+// The account's identity, read from the warehouse dimension rather than from Salesforce.
+//
+// The account page used to take its name and industry from the CRM adapter and call notFound() when
+// that returned nothing, which meant a Salesforce outage rendered as "this account does not exist".
+// Identity belongs to the source that must be up for the page to have a reason to exist at all, so
+// the warehouse answers "who is this" and the CRM answers "what is the deal doing". A CRM failure
+// then degrades one panel instead of 404ing the whole account.
+export async function getAccount(accountId: string): Promise<AccountSummary | null> {
+  const { rows } = await (await getWarehousePool()).query(
+    `select account_id, name, industry, segment, arr, se_owner, slack_channel
+       from activity.dim_account
+      where account_id = $1`,
+    [accountId],
+  );
+  const r = rows[0];
+  return r
+    ? {
+        accountId: r.account_id,
+        name: r.name,
+        industry: r.industry,
+        segment: r.segment,
+        arr: r.arr,
+        seOwner: r.se_owner,
+        slackChannel: r.slack_channel,
+      }
+    : null;
+}
+
 export async function getAccountActivity(accountId: string): Promise<ActivityRow[]> {
   const { rows } = await (await getWarehousePool()).query(
     `select activity_id, account_id, activity_type, occurred_at, summary, detail

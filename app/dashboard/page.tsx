@@ -1,14 +1,12 @@
-import Link from "next/link";
 import { Suspense } from "react";
-import { RiskBadge } from "@/app/_components/badges";
 import { Nav } from "@/app/_components/nav";
+import { PatchTable, type PatchTableRow } from "@/app/_components/patch-table";
 import { getCaller } from "@/lib/auth/server";
 import { getPatchOverview } from "@/lib/dashboard/patch";
 import { fmtArr } from "@/lib/format";
+import { isClosed } from "@/lib/salesforce/stages";
 
 export const metadata = { title: "Your patch" };
-
-const CLOSED = new Set(["Closed Won", "Closed Lost"]);
 
 // The page itself is the static shell: chrome, heading, and the shape of what is coming. Everything
 // that needs the warehouse sits below a Suspense boundary and streams in.
@@ -40,10 +38,10 @@ export default function DashboardPage() {
 }
 
 async function PatchSubtitle() {
-  const [patch, caller] = await Promise.all([getPatchOverview(), getCaller()]);
+  const [{ rows }, caller] = await Promise.all([getPatchOverview(), getCaller()]);
   return (
     <p className="mt-1 text-muted-foreground text-sm">
-      {patch.length} accounts, owned by {caller?.name ?? "you"}. Ask the copilot for a brief on any of
+      {rows.length} accounts, owned by {caller?.name ?? "you"}. Ask the copilot for a brief on any of
       them.
     </p>
   );
@@ -58,11 +56,8 @@ function PatchSkeleton() {
           <div className="h-[76px] animate-pulse rounded-xl border border-border bg-card" key={i} />
         ))}
       </div>
-      <div className="mt-8 grid gap-3 md:grid-cols-2">
-        {[0, 1, 2, 3].map((i) => (
-          <div className="h-[124px] animate-pulse rounded-xl border border-border bg-card" key={i} />
-        ))}
-      </div>
+      <div className="mt-6 h-9 animate-pulse rounded-md border border-border bg-card" />
+      <div className="mt-3 h-96 animate-pulse rounded-xl border border-border bg-card" />
     </>
   );
 }
@@ -78,11 +73,30 @@ function Kpi({ label, tone, value }: { label: string; tone?: "risk"; value: stri
 }
 
 async function PatchBody() {
-  const patch = await getPatchOverview();
-  const atRisk = patch.filter((p) => p.riskFlag === "At Risk").length;
-  const awaiting = patch.filter((p) => !p.nextStep && p.stage && !CLOSED.has(p.stage)).length;
-  const wins = patch.filter((p) => p.stage === "Closed Won").length;
-  const book = patch.reduce((sum, p) => sum + (p.arr || 0), 0);
+  const { engineering, rows } = await getPatchOverview();
+  const atRisk = rows.filter((p) => p.riskFlag === "At Risk").length;
+  const awaiting = rows.filter((p) => !p.nextStep && p.stage && !isClosed(p.stage)).length;
+  const wins = rows.filter((p) => p.stage === "Closed Won").length;
+  const book = rows.reduce((sum, p) => sum + (p.arr || 0), 0);
+
+  // Only the fields the table renders cross to the client. The read model carries the Slack channel
+  // and the opportunity ids too, and shipping those into a client component would put them in the
+  // RSC payload for no reason anyone could point at later.
+  const tableRows: PatchTableRow[] = rows.map((p) => ({
+    accountId: p.accountId,
+    name: p.name,
+    industry: p.industry,
+    segment: p.segment,
+    arr: p.arr,
+    stage: p.stage,
+    amount: p.amount,
+    closeDate: p.closeDate,
+    nextStep: p.nextStep,
+    riskFlag: p.riskFlag,
+    activityCount: p.activityCount,
+    lastActivity: p.lastActivity,
+    openIssues: p.openIssues,
+  }));
 
   return (
     <>
@@ -93,57 +107,11 @@ async function PatchBody() {
         <Kpi label="Book" value={fmtArr(book)} />
       </div>
 
-      <div className="mt-8 grid gap-3 md:grid-cols-2">
-        {patch.map((p) => (
-          <Link
-            className="group rounded-xl border border-border bg-card p-4 transition hover:border-foreground/20"
-            href={`/accounts/${p.accountId}`}
-            key={p.accountId}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="truncate font-medium">{p.name}</span>
-                  <RiskBadge risk={p.riskFlag} />
-                </div>
-                <div className="mt-0.5 text-muted-foreground text-xs">
-                  {p.industry}
-                  {p.segment ? ` · ${p.segment}` : ""} · {fmtArr(p.arr)}
-                </div>
-              </div>
-              <div className="shrink-0 text-right">
-                {p.stage ? (
-                  <span className="rounded-full border border-border px-2 py-0.5 text-xs">
-                    {p.stage}
-                  </span>
-                ) : (
-                  <span className="text-muted-foreground text-xs">No opportunity</span>
-                )}
-              </div>
-            </div>
-
-            <div className="mt-3 text-sm">
-              {p.nextStep ? (
-                <span className="text-muted-foreground">
-                  <span className="text-foreground">Next:</span> {p.nextStep}
-                </span>
-              ) : p.stage && !CLOSED.has(p.stage) ? (
-                <span className="text-amber-700 dark:text-amber-400">Awaiting next step</span>
-              ) : (
-                <span className="text-muted-foreground">No open action</span>
-              )}
-            </div>
-
-            <div className="mt-3 flex items-center justify-between text-muted-foreground text-xs">
-              <span>
-                {p.activityCount} activities
-                {p.lastActivity ? ` · last ${p.lastActivity}` : ""}
-              </span>
-              <span className="opacity-0 transition group-hover:opacity-100">View account →</span>
-            </div>
-          </Link>
-        ))}
-      </div>
+      <PatchTable
+        engineeringComplete={engineering.complete}
+        engineeringConnected={engineering.connected}
+        rows={tableRows}
+      />
     </>
   );
 }
