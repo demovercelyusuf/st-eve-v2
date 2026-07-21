@@ -1,3 +1,4 @@
+import type { BriefSource, RenderableBrief } from "../brief/render";
 import type { ShippedBrief } from "../brief/schema";
 import { appStore, schema } from "./client";
 
@@ -8,9 +9,22 @@ import { appStore, schema } from "./client";
 export async function recordBriefRun(
   accountId: string,
   result: Omit<ShippedBrief, "account" | "accountId">,
-  meta?: { sessionId?: string },
+  meta?: { sessionId?: string; account?: string; sources?: BriefSource[] },
 ): Promise<string> {
   const db = appStore();
+
+  // The renderable brief is assembled here rather than at read time, because everything it needs is
+  // already in hand at exactly this moment: the gate's result, the resolved account name, and the
+  // source list carrying the urls the evidence ledger recorded during this run. That ledger is scoped
+  // to the session, so a page reading it days later could not rebuild the clickable half of a
+  // citation. Freezing the artifact when it ships is the only point where it is complete.
+  const brief: RenderableBrief = {
+    account: meta?.account ?? accountId,
+    accountId,
+    ...result,
+    sources: meta?.sources,
+  };
+
   const [run] = await db
     .insert(schema.briefRuns)
     .values({
@@ -20,6 +34,7 @@ export async function recordBriefRun(
       grounded: true, // every shipped claim is cited by construction
       groundedClaims: result.grounding.citedClaims,
       droppedClaims: result.grounding.droppedClaims,
+      brief,
     })
     .returning({ id: schema.briefRuns.id });
 

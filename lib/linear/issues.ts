@@ -7,6 +7,12 @@
 
 const LINEAR_API = "https://api.linear.app/graphql";
 
+// The connector id, named here rather than in the tool because two callers now need it: the agent's
+// read tool during a brief, and the account page reading the same issues for the evidence timeline.
+// A second literal in the page file would be the kind of duplication that survives a connector rename
+// by silently failing on one surface only.
+export const LINEAR_CONNECTOR = "linear/byzantine-pebble";
+
 export type LinearIssue = {
   identifier: string;
   title: string;
@@ -91,4 +97,93 @@ export async function fetchAccountIssues(
 // the wrong reason.
 export function linearCitationId(identifier: string): string {
   return `LIN-${identifier}`;
+}
+
+// The list view's read: one open-issue count per account across the whole patch.
+//
+// A different question from fetchAccountIssues, and the difference is why it is a separate query
+// rather than a loop over that one. The per-account read answers "what is the engineering story
+// here" and its rows get cited. This answers "which of my accounts is carrying weight" and its rows
+// get scanned, so it trades every field except the label for a single round trip. Looping would put
+// one request per row on a dashboard render, which is the version that gets written first and
+// regretted on the first patch with thirty accounts.
+//
+// Open is defined by state type rather than state name: an org can rename "Done" but the completed
+// and canceled types are Linear's own, so this survives a workflow rename.
+const OPEN_COUNT_QUERY = `
+  query PatchIssueLoad($labels: [String!], $first: Int!) {
+    issues(
+      filter: {
+        labels: { name: { in: $labels } }
+        state: { type: { nin: ["completed", "canceled"] } }
+      }
+      first: $first
+    ) {
+      pageInfo { hasNextPage }
+      nodes { labels { nodes { name } } }
+    }
+  }
+`;
+
+export type OpenIssueCounts = {
+  openByAccount: Record<string, number>;
+  // False when the page cap truncated the result, which makes every count a floor rather than a
+  // total. Surfaced instead of hidden because "4 open issues" and "at least 4 open issues" are
+  // different claims and only one of them is true here.
+  complete: boolean;
+};
+
+// Enough to cover this workspace many times over. A cap rather than a paging loop because the honest
+// failure is "these are floors", which `complete` already says, and pagination would put an unbounded
+// number of round trips behind a page render.
+const OPEN_COUNT_CAP = 250;
+
+export async function fetchOpenIssueCounts(
+  token: string,
+  labels: string[],
+  signal?: AbortSignal,
+): Promise<OpenIssueCounts> {
+  const res = await fetch(LINEAR_API, {
+    method: "POST",
+    headers: { authorization: token, "content-type": "application/json" },
+    body: JSON.stringify({
+      query: OPEN_COUNT_QUERY,
+      variables: { labels, first: OPEN_COUNT_CAP },
+    }),
+    signal,
+  });
+
+  if (res.status === 401 || res.status === 403) {
+    throw new LinearUnauthorized(`linear rejected the token: ${res.status}`);
+  }
+  if (!res.ok) {
+    throw new Error(`linear request failed: ${res.status} ${await res.text()}`);
+  }
+
+  const json = (await res.json()) as {
+    data?: {
+      issues?: {
+        pageInfo?: { hasNextPage?: boolean };
+        nodes?: Array<{ labels?: { nodes?: Array<{ name?: string }> } }>;
+      };
+    };
+    errors?: Array<{ message: string }>;
+  };
+  if (json.errors?.length) {
+    throw new Error(`linear query failed: ${json.errors.map((e) => e.message).join("; ")}`);
+  }
+
+  // Counted against the labels we asked for, not against every label the issue carries. Issues also
+  // carry component and severity labels, and bucketing those would invent accounts that do not exist.
+  const wanted = new Set(labels);
+  const openByAccount: Record<string, number> = {};
+  for (const node of json.data?.issues?.nodes ?? []) {
+    for (const label of node.labels?.nodes ?? []) {
+      if (label.name && wanted.has(label.name)) {
+        openByAccount[label.name] = (openByAccount[label.name] ?? 0) + 1;
+      }
+    }
+  }
+
+  return { openByAccount, complete: json.data?.issues?.pageInfo?.hasNextPage !== true };
 }

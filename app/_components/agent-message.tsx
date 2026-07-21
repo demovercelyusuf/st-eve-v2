@@ -15,6 +15,7 @@ import {
   XCircleIcon,
 } from "lucide-react";
 import { BriefCard } from "@/app/_components/brief-card";
+import { BriefPreview } from "@/app/_components/brief-preview";
 import type { RenderableBrief } from "@/lib/brief/render";
 import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
 import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/components/ai-elements/reasoning";
@@ -38,11 +39,18 @@ type EveFilePart = Extract<EveMessagePart, { type: "file" }>;
 
 export function AgentMessage({
   canRespond,
+  compact = false,
   isStreaming,
   message,
   onInputResponses,
 }: {
   readonly canRespond: boolean;
+  /**
+   * Renders for a narrow surface: the floating dock rather than the full page. Only the parts that
+   * genuinely do not fit change shape, so both surfaces still route every tool part through this one
+   * component and cannot drift on what a tool call looks like.
+   */
+  readonly compact?: boolean;
   readonly isStreaming: boolean;
   readonly message: EveMessage;
   readonly onInputResponses: (responses: readonly AgentInputResponse[]) => void | Promise<void>;
@@ -61,6 +69,7 @@ export function AgentMessage({
         {message.parts.map((part, index) => (
           <AgentMessagePart
             canRespond={canRespond}
+            compact={compact}
             key={partKey(part, index)}
             onInputResponses={onInputResponses}
             part={part}
@@ -74,11 +83,13 @@ export function AgentMessage({
 
 function AgentMessagePart({
   canRespond,
+  compact,
   onInputResponses,
   part,
   showCaret,
 }: {
   readonly canRespond: boolean;
+  readonly compact: boolean;
   readonly onInputResponses: (responses: readonly AgentInputResponse[]) => void | Promise<void>;
   readonly part: EveMessagePart;
   readonly showCaret: boolean;
@@ -93,8 +104,10 @@ function AgentMessagePart({
         </MessageResponse>
       );
     case "reasoning":
+      // Open on the full page, where there is room to read it. In the dock an expanded reasoning
+      // block would push the answer itself out of view, so it starts collapsed and stays available.
       return (
-        <Reasoning defaultOpen isStreaming={part.state === "streaming"}>
+        <Reasoning defaultOpen={!compact} isStreaming={part.state === "streaming"}>
           <ReasoningTrigger />
           <ReasoningContent>{part.text}</ReasoningContent>
         </Reasoning>
@@ -107,8 +120,11 @@ function AgentMessagePart({
       // emit_brief is the product's output, not a tool call to inspect. Rendering it as a collapsed
       // JSON blob put the flagship artifact behind a disclosure triangle on the surface where an SE
       // actually works, while Slack got a designed card of the same data.
+      //
+      // The dock gets the same brief at panel scale. See brief-preview.tsx for why the full card is
+      // the wrong rendering in 26rem rather than simply a squeezed one.
       const brief = shippedBrief(part);
-      if (brief) return <BriefCard brief={brief} />;
+      if (brief) return compact ? <BriefPreview brief={brief} /> : <BriefCard brief={brief} />;
 
       return (
         <Tool

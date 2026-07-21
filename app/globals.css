@@ -96,3 +96,112 @@ input,
 textarea {
   font: inherit;
 }
+
+/* ---------------------------------------------------------------------------
+ * Landing motion.
+ *
+ * Every keyframe below ends at the resting state and runs with fill-mode both, so an animation
+ * that never starts still leaves its content visible. Reveal-on-scroll that strands text at
+ * opacity 0 when a timeline is unsupported is the standard way this effect breaks a page, and it
+ * breaks it invisibly, on someone else's browser.
+ * --------------------------------------------------------------------------- */
+
+@keyframes steve-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rise {
+  animation: steve-rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--rise-delay, 0ms);
+}
+
+/* Scroll-linked variant. Where animation-timeline is unsupported the declaration is dropped and
+ * this degrades to the play-on-load reveal above, which is why it needs no feature query. */
+.reveal {
+  animation: steve-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--rise-delay, 0ms);
+  animation-timeline: view();
+  animation-range: entry 0% cover 28%;
+}
+
+/* A slow idle drift on the proof card, enough to read as alive and not enough to pull the eye off
+ * the headline next to it. */
+@keyframes steve-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.float {
+  animation: steve-float 7s ease-in-out infinite;
+}
+
+/* Citations arriving one after another, which is the grounding step made visible: the claim is
+ * written, then the records that back it land underneath it. */
+@keyframes steve-cite-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.cite-in {
+  animation: steve-cite-in 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--rise-delay, 0ms);
+}
+
+/* Interactive surfaces. Tailwind's reset drops the pointer cursor on <button>, and anything that
+ * lifts on hover should also read as clickable. */
+.lift {
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    border-color 0.16s ease;
+}
+.lift:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in oklch, var(--foreground) 20%, transparent);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.07);
+}
+
+.press {
+  transition:
+    transform 0.12s ease,
+    opacity 0.12s ease;
+}
+.press:hover {
+  opacity: 0.9;
+}
+.press:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .reveal,
+  .float,
+  .cite-in {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .lift:hover,
+  .press:active {
+    transform: none;
+  }
+}
