@@ -30,6 +30,15 @@ const display = Space_Grotesk({
   display: "swap",
 });
 
+// Two things in this file are load-bearing and neither is obvious.
+//
+// THEME_INIT_SCRIPT goes in as a blocking inline script in the head. Everything about that looks like
+// a mistake, and it is the only thing that works: the skin is chosen client-side, so anything
+// deferred or bundled paints the wrong colours first and corrects them, which is worse than a slow
+// paint. It is a few lines, it is inlined rather than fetched, and it runs before first paint.
+//
+// The copilot is deliberately NOT mounted here. See the note above RootLayout.
+//
 // metadataBase is what makes the open-graph image resolve to an absolute url. Without it a link to
 // this deployment unfurls as nothing, which is most of what a reviewer sees before they open it.
 export const metadata: Metadata = {

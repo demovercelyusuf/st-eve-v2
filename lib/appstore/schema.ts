@@ -12,7 +12,14 @@ import {
 } from "drizzle-orm/pg-core";
 import type { RenderableBrief } from "../brief/render";
 
-// The copilot's own derived state, kept separate from the customer's systems of record. Nothing
+// The copilot's own derived state, in its own database.
+//
+// Two schemas exist in this repo and they never meet. Drizzle owns this one, which is the copilot's
+// app-store on Neon. lib/warehouse/schema.sql owns the customer's warehouse on RDS, is applied by
+// the seed script, and Drizzle has never heard of it. Reaching across that line is how a copilot
+// ends up owning a system of record, which is the one thing the boundary argument forbids.
+//
+// Kept separate from the customer's systems of record. Nothing
 // here is authoritative: it records what the copilot did so the app can show per-run cost and prove
 // grounding. It never holds a system of record.
 

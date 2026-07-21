@@ -26,6 +26,13 @@ import { Wordmark } from "./wordmark";
 import { useCopilot } from "./copilot-provider";
 import { isSendable, toAgentMessage } from "./prompt-message";
 
+// There are two chat surfaces and they are one conversation. Worth stating plainly, because two chat
+// UIs with no declared relationship is the most confusing thing in this directory.
+//
+// This dock is the copilot on every workspace page. /chat is the same conversation at full size,
+// rendered by agent-chat.tsx. copilot-provider.tsx owns the single eve session both of them read, so
+// switching between them continues a turn rather than starting one. Neither owns state.
+//
 // Steve, from anywhere. The dock is deliberately not modal: an SE asks about the account they are
 // looking at, and the whole value is that the account page stays readable and interactive behind the
 // panel. That single decision drives most of what follows, including what this file does NOT do.
