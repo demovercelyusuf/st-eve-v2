@@ -52,7 +52,12 @@ describe("session", () => {
     expect(callerFromSession(session({ principalId: OPERATOR.id, principalType: "service" }))).toBeNull();
   });
 
-  it("rejects an unknown subject", () => {
-    expect(callerFromSession(session({ principalId: "somebody-else", principalType: "user" }))).toBeNull();
+  it("accepts a human under whatever name their channel gives them", () => {
+    // Slack sends its own user id, Okta would send an OIDC subject, the web surface sends "yusuf".
+    // Pinning one spelling meant Slack authenticated and then every tool refused with "sign in to see
+    // your accounts", which is what happened on the first real mention.
+    for (const principalId of ["yusuf", "U07QY751W14", "auth0|63f1c0d2"]) {
+      expect(callerFromSession(session({ principalId, principalType: "user" }))?.id).toBe(OPERATOR.id);
+    }
   });
 });
