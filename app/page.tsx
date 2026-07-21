@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FloatingMascot, Rise } from "@/app/_components/motion";
+import { SlackPreview, SourceMarks } from "@/app/_components/slack-preview";
 import { Wordmark } from "@/app/_components/wordmark";
 
 // The front door, and nothing else.
@@ -83,11 +84,23 @@ export default function Page() {
           </Link>
         </Rise>
 
-        {/* Held back on short viewports rather than allowed to push the call to action off screen. A
-            landscape phone has room for the sentence or the mascot, and the sentence is the one
-            doing the work. */}
-        <div className="mt-8 hidden [@media(min-height:700px)]:block">
-          <FloatingMascot size={104} />
+        {/* The sources, then the thing they produce. Both are held back on short viewports rather
+            than allowed to push the call to action off screen: a landscape phone has room for the
+            sentence or the proof, and the sentence is the one doing the work.
+
+            Two thresholds because they cost different amounts of height. The marks are one row and
+            appear early; the card is the real artifact and only shows where there is genuinely
+            room for it. */}
+        <Rise className="mt-8 hidden [@media(min-height:640px)]:flex" delay={240}>
+          <SourceMarks />
+        </Rise>
+
+        <Rise className="mt-7 hidden w-full justify-center [@media(min-height:820px)]:flex" delay={300}>
+          <SlackPreview />
+        </Rise>
+
+        <div className="mt-6 hidden [@media(min-height:640px)_and_(max-height:819px)]:block">
+          <FloatingMascot size={88} />
         </div>
       </main>
 
