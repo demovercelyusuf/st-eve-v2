@@ -9,8 +9,8 @@ import { warehouseQuery } from "../warehouse/client";
 // single account's live CRM read still goes through the Salesforce adapter.
 //
 // Linear joins here rather than in the page because "how loaded is this account" is a property of the
-// patch, not of a component. The table sorts on it and the board colours a card by it, and neither
-// surface should be the place that knows how to reach Linear.
+// patch, not of a component. The table sorts on it, and that surface should not be the place that
+// knows how to reach Linear.
 
 export type PatchRow = {
   accountId: string;

@@ -39,8 +39,8 @@ function toDate(value: unknown): string | null {
 }
 
 export async function getSalesforceAccount(accountId: string): Promise<SalesforceAccount | null> {
-  // The demo path reads the mocked CRM schema. A real deployment branches on SALESFORCE_MODE and
-  // calls SALESFORCE_API_URL over HTTPS with a JWT bearer instead.
+  // The demo path reads the mocked CRM schema. A real deployment swaps this adapter's body for SOQL
+  // over HTTPS against the customer's org, which is the only thing behind this seam that changes.
   //
   // These go through the warehouse connection, so the credential reading sfdc is the same leased
   // reader that reads activity. Worth being explicit that this is a schema boundary and not a

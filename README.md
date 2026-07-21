@@ -61,9 +61,10 @@ generation, so a confident-but-wrong claim or a hallucinated citation is caught 
 | --- | --- |
 | `/dashboard` | The SE's patch: at-risk, awaiting-next-step, and closed-won KPIs with per-account cards. |
 | `/accounts/[id]` | An account: opportunity, contacts, activity timeline, latest brief run. |
-| `/chat` | The copilot. |
-| `/spend` | Per-run cost, from the AI Gateway's own reported figures. |
+| `/chat` | The copilot, with the model router beside it. |
+| `/integrations` | Every source Steve reads, and the credential it presents to each. |
 | `/health/boundary` | A live cross-boundary read that proves the connection is real. |
+| `/health/vault` | The Vault lease the running deployment is reading under. |
 
 ## Local development
 
@@ -90,7 +91,9 @@ production path mints short-lived warehouse credentials through Vault rather tha
 
 Grounding is enforced in code, not left to the model:
 
-- `scripts/check-gate.ts` proves the gate withholds an unbacked inference and a fabricated citation.
+- `lib/grounding/gate.test.ts` proves the gate withholds a claim with no citation and a claim citing a
+  fabricated id. `lib/citations/registry.test.ts` proves no two source prefixes overlap, so an id
+  cannot resolve against the wrong system. Both run in CI.
 - Every run records its grounded-versus-dropped claim counts, so grounding is measurable per account.
 
 ## Stack

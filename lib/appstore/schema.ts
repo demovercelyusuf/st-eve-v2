@@ -13,8 +13,8 @@ import {
 import type { RenderableBrief } from "../brief/render";
 
 // The copilot's own derived state, kept separate from the customer's systems of record. Nothing
-// here is authoritative: it records what the copilot did so the app can show per-run cost, prove
-// grounding, and dedupe Slack deliveries. It never holds a system of record.
+// here is authoritative: it records what the copilot did so the app can show per-run cost and prove
+// grounding. It never holds a system of record.
 
 export const briefRuns = pgTable(
   "brief_runs",
@@ -111,10 +111,3 @@ export const evidence = pgTable(
   ],
 );
 
-// At-least-once Slack delivery is deduped on this key so a retried post does not double-send.
-export const slackDeliveries = pgTable("slack_deliveries", {
-  id: text("id").primaryKey(),
-  briefRunId: uuid("brief_run_id").references(() => briefRuns.id),
-  channel: text("channel").notNull(),
-  deliveredAt: timestamp("delivered_at", { withTimezone: true }).notNull().defaultNow(),
-});
