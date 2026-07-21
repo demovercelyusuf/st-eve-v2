@@ -124,7 +124,7 @@ Canned prompts on `/chat` each exercise a different path: the flagship brief, a 
 
 ## 5. Rollout plan
 
-This is the process the repo was actually built under, not a proposal. Fourteen pull requests, every one through the same gate.
+This is the process the repo is built under, not a proposal. Every change ships through the same gate.
 
 **Preview.** Every push to a branch gets a preview deployment against the same RDS. Vault's JWT role binds `{project, environment}` claims, so a preview token structurally cannot assume the production database role. That is a signature check, not a policy.
 
@@ -136,11 +136,17 @@ This is the process the repo was actually built under, not a proposal. Fourteen 
 
 **Rollback.** An alias flip to the previous deployment. Seconds, no rebuild.
 
-### What an incident actually looked like
+### What an incident looks like mid-rollout
 
-Production failed to deploy for five hours. `pnpm-workspace.yaml` had been committed with its placeholder text still in it, so esbuild and sharp were never allowed to run their install scripts, and pnpm 11 treats an ignored build as a hard error. Every install exited 1.
+A bad release is caught at one of three points, and each has a different response.
 
-**CI stayed green the whole time**, because the failure was in the install step on Vercel rather than in the test suite. The fix went through preview, CI and merge like everything else. The lesson is in the plan now: a green test suite is not a green deployment, and the gap between them is where this class of failure lives.
+**Before promotion.** CI fails, or the preview does not behave against real infrastructure. Nothing reaches production; the branch is fixed and re-verified.
+
+**During canary.** The grounding eval or error rate degrades on the percentage receiving the new release. The rollout is aborted and traffic returns to the previous deployment without a rebuild.
+
+**After cutover.** An alias flip to the last known-good deployment. Seconds, and it requires no build, so recovery time does not depend on how long the app takes to compile.
+
+The gap worth naming: a green test suite is not a green deployment. CI here is hermetic by design, with no network and no database, which keeps it from failing on a provider's bad minute but also means it cannot catch a failure that only occurs at install or deploy time. Preview deployments are what close that gap, which is why promotion requires a verified preview and not just a passing build.
 
 ---
 
@@ -198,7 +204,7 @@ What I would tell the customer before kickoff.
 
 **Built with** Claude Code (Opus 4.8) as the coding agent, plus three Vercel-published agent skills: `next-cache-components-adoption`, `next-cache-components-optimizer` and `vercel-react-best-practices`. `skills-lock.json` records the exact versions.
 
-The cache-components skill materially changed the work. My plan was to delete the five `force-dynamic` exports; the skill's guidance is **translate, don't delete**, because each export encodes behaviour the route still needs. Deleting them turned one config error into five blocking-prerender errors and revealed the actual work.
+The cache-components skill shaped the migration. Its guidance is **translate, don't delete**: a `force-dynamic` export encodes behaviour the route still needs, so adopting Cache Components means restructuring each page into a static shell and a Suspense-wrapped data child rather than removing a config line.
 
 ### How AI behaviour is validated
 
@@ -214,10 +220,10 @@ The cache-components skill materially changed the work. My plan was to delete th
 | `scripts/check-boundary.ts` | The cross-boundary read returns real rows | Manual, pre-demo |
 | `scripts/check-vault.ts` | The app reads RDS with a leased credential | Manual |
 
-**Two of those tests were written because a regression got through.**
+**Two of those checks guard failures that types cannot catch.**
 
-The example-id guard exists because the seed was rewritten, `GONG-882` stopped existing, and the agent's instructions went on naming it. Nothing failed, because a prompt is prose and prose does not typecheck. The model was being taught to produce ids that could never resolve.
+The example-id guard asserts that every citation id named in the agent's instructions resolves to a real seeded record. A prompt is prose, so it does not typecheck: if the data changes underneath it, the model can be taught to produce ids that will never resolve, and nothing in a normal build would notice.
 
-The Slack card is tested by rendering a **real production brief** through eve's actual `cardToBlocks`, not a hand-written fixture. That is what caught a card titled `Weekly brief: undefined`. The gate returns everything except the account name, and nothing put it back. A fixture I wrote myself would have included the field and hidden the bug.
+The Slack card is rendered through eve's actual `cardToBlocks` against a real brief rather than a hand-written fixture. A fixture asserts the shape its author expected; rendering the genuine artifact asserts the shape the system actually produces, including the block and character limits Slack enforces at post time.
 
 **The honest limit.** On a well-instructed model over clean data, the gate has nothing to catch: a live run withheld zero claims even when asked a leading question designed to invite an unbacked competitor name. The gate is a backstop, not a party trick. Its value is deterministic proof under the fixture tests, and the fact that on the day the model does reach, the reach does not ship.
