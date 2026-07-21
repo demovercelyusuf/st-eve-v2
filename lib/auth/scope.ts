@@ -39,10 +39,20 @@ export type SessionLike = {
 // A turn with no authenticated principal reads nothing. That matters even with one operator: it is
 // the difference between "the agent runs as somebody" and "the agent runs as whoever reached it", and
 // only the first can request a Connect token.
+//
+// Any authenticated human is the operator, and the principal id is deliberately not checked. Every
+// channel names people differently: the web surface says "yusuf", Slack says "U07QY751W14", Okta
+// would say an OIDC subject. Pinning one of those spellings meant Slack authenticated correctly and
+// then every tool refused with "sign in to see your accounts", which is exactly what happened on the
+// first real mention.
+//
+// principalType is still checked, and that is the line that matters. A service principal is a
+// runtime or subagent caller, not a person, and it has no book of accounts. This is also the single
+// place a second reader would arrive: multi-tenant maps principalId to a book here rather than
+// resolving everyone to one operator.
 export function callerFromSession(session: SessionLike | undefined): Caller | null {
   const current = session?.auth?.current;
   if (!current || current.principalType !== "user") return null;
-  if (current.principalId !== OPERATOR.id) return null;
   return callerFor();
 }
 
