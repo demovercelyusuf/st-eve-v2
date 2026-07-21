@@ -1,5 +1,15 @@
 import { Card, CardText, Divider, Field, Fields } from "eve/channels/slack";
 import type { CardElement } from "eve/channels/slack";
+import {
+  PRIORITY_LABEL,
+  type RenderableBrief,
+  briefFallbackText,
+  groundingFooter,
+  sourceUrl,
+} from "../brief/render";
+
+export type { RenderableBrief };
+export { briefFallbackText, groundingFooter };
 
 // The brief, as it lands in the deal channel.
 //
@@ -10,24 +20,6 @@ import type { CardElement } from "eve/channels/slack";
 //
 // Pure on purpose: no eve runtime, no network, no session. It takes a shape and returns a card, so it
 // can be tested against a fixture rather than by running a turn and reading Slack.
-
-export type BriefCardInput = {
-  account: string;
-  accountId: string;
-  summary: string;
-  nextSteps: Array<{ priority: string; text: string; owner: string; citations: string[] }>;
-  stageRead: {
-    salesforceStage: string;
-    groundedRead: string;
-    riskLevel: string;
-    confidence: number;
-    signals: string[];
-  };
-  needsReview: Array<{ text: string; reason: string }>;
-  citedIds: string[];
-  grounding: { shippedClaims: number; citedClaims: number; droppedClaims: number };
-  sources?: Array<{ citationId: string; url?: string | null; label?: string }>;
-};
 
 // Slack caps a section at 3,000 characters. cardToBlocks truncates for us, but clamping here keeps
 // the ellipsis somewhere sensible instead of mid-word at the limit.
@@ -49,14 +41,12 @@ function esc(text: string): string {
 // A citation renders as a plain code chip unless the evidence ledger gave us a url, in which case it
 // becomes a link straight back to the record. That is the difference an engineer notices: a chip you
 // can click came from outside the warehouse.
-function chip(id: string, sources?: BriefCardInput["sources"]): string {
-  const url = sources?.find((s) => s.citationId === id)?.url;
+function chip(id: string, sources?: RenderableBrief["sources"]): string {
+  const url = sourceUrl(id, sources);
   return url ? `<${url}|${esc(id)}>` : `\`${esc(id)}\``;
 }
 
-const PRIORITY: Record<string, string> = { high: "HIGH", medium: "MED", low: "LOW" };
-
-export function briefCard(brief: BriefCardInput): CardElement {
+export function briefCard(brief: RenderableBrief): CardElement {
   const children: unknown[] = [];
 
   children.push(CardText("*Summary*"));
@@ -103,7 +93,7 @@ export function briefCard(brief: BriefCardInput): CardElement {
             .slice(0, MAX_STEPS)
             .map((s) => {
               const cites = s.citations.map((id) => chip(id, brief.sources)).join(" ");
-              return `*${PRIORITY[s.priority] ?? s.priority.toUpperCase()}* ${esc(s.text)}\n_${esc(s.owner)}_ · ${cites}`;
+              return `*${PRIORITY_LABEL[s.priority] ?? s.priority.toUpperCase()}* ${esc(s.text)}\n_${esc(s.owner)}_ · ${cites}`;
             })
             .join("\n\n"),
         ),
@@ -131,7 +121,7 @@ export function briefCard(brief: BriefCardInput): CardElement {
   }
 
   children.push(Divider());
-  children.push(CardText(groundingFooter(brief)));
+  children.push(CardText(`_${groundingFooter(brief)}_`));
 
   return Card({
     title: clamp(`Weekly brief: ${brief.account}`, 140),
@@ -140,17 +130,3 @@ export function briefCard(brief: BriefCardInput): CardElement {
   } as never) as CardElement;
 }
 
-export function groundingFooter(brief: BriefCardInput): string {
-  const { citedClaims, droppedClaims } = brief.grounding;
-  const sources = brief.citedIds.length;
-  const withheld =
-    droppedClaims === 0
-      ? "nothing withheld"
-      : `${droppedClaims} withheld`;
-  return `_${citedClaims} claims, every one cited to ${sources} ${sources === 1 ? "record" : "records"}, ${withheld}._`;
-}
-
-// What a Slack client shows in a notification, where blocks are not rendered.
-export function briefFallbackText(brief: BriefCardInput): string {
-  return `Weekly brief: ${brief.account} (${brief.accountId}). ${brief.grounding.citedClaims} cited claims, ${brief.grounding.droppedClaims} withheld.`;
-}
