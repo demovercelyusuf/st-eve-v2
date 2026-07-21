@@ -49,8 +49,19 @@ type ChannelLookup =
   | { ok: true; channel: SlackChannel }
   | { ok: false; reason: string };
 
+// A Slack channel id, as opposed to a name. C for public, G for legacy private, D for a DM.
+const CHANNEL_ID = /^[CGD][A-Z0-9]{6,}$/;
+
 export async function resolveChannel(token: string): Promise<ChannelLookup> {
   const preferred = process.env.SLACK_BRIEF_CHANNEL?.replace(/^#/, "");
+
+  // An id posts straight through. This is the better configuration and not just a shortcut: looking
+  // a channel up by name needs channels:read, which is a broad scope granting visibility of every
+  // channel in the workspace, in order to answer a question the deployment could simply have been
+  // told the answer to. With an id, the app needs chat:write and nothing else.
+  if (preferred && CHANNEL_ID.test(preferred)) {
+    return { ok: true, channel: { id: preferred, is_member: true, name: preferred } };
+  }
 
   const json = await slack<{ ok: boolean; error?: string; channels?: SlackChannel[] }>(
     token,
@@ -66,7 +77,7 @@ export async function resolveChannel(token: string): Promise<ChannelLookup> {
       ? {
           ok: false,
           reason:
-            "The Slack app is missing the channels:read scope, so it cannot see which channels it is in.",
+            "Slack channel discovery needs the channels:read scope. Set SLACK_BRIEF_CHANNEL to a channel id instead and no discovery is needed.",
         }
       : { ok: false, reason: `Slack refused the channel lookup: ${json.error ?? "unknown error"}.` };
   }
