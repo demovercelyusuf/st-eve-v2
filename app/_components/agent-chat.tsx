@@ -17,6 +17,8 @@ import {
 import { cn } from "@/lib/utils";
 import { AgentMessage } from "./agent-message";
 import { AgentStatusDot } from "./agent-status-dot";
+import { ModelRouter } from "./model-router";
+import { Wordmark } from "./wordmark";
 import { useCopilot } from "./copilot-provider";
 import { isSendable, toAgentMessage } from "./prompt-message";
 
@@ -56,17 +58,12 @@ export function AgentChat() {
   );
 
   return (
-    <main className="flex h-dvh flex-col overflow-hidden bg-background text-foreground">
-      {/* The way out. This page takes the full viewport with no nav, so without a link back it is a
-          trap: a reviewer who opens the copilot first has to reach for the browser's back button to
-          find anything else. Shown even on the empty state for that reason. */}
-      <header className="flex h-14 shrink-0 items-center justify-between gap-3 pr-4 pl-4">
-        <Link
-          className="text-muted-foreground text-sm transition-colors hover:text-foreground"
-          href="/dashboard"
-        >
-          &larr; Your patch
-        </Link>
+    // Sized against the shell header rather than the viewport, so the composer sits on the fold
+    // instead of just below it. The workspace nav is the way out now, so this page no longer needs
+    // to carry its own.
+    <div className="flex h-[calc(100dvh-3.5rem)]">
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+      <header className="flex h-14 shrink-0 items-center justify-end gap-3 pr-4 pl-4">
         {isEmpty ? null : (
           <span className="flex min-w-0 items-center gap-2">
             <span className="truncate text-muted-foreground text-sm">{AGENT_NAME}</span>
@@ -116,7 +113,9 @@ export function AgentChat() {
       >
         {isEmpty ? (
           <div className="flex flex-col items-center gap-5 text-center">
-            <h1 className="font-medium text-5xl tracking-tighter">{AGENT_NAME}</h1>
+            <h1>
+              <Wordmark showDot={false} size="xl" />
+            </h1>
             <p className="text-muted-foreground text-sm">
               Ask about any account on your patch. Every claim comes back with the record that backs
               it.
@@ -140,6 +139,15 @@ export function AgentChat() {
         ) : null}
         <div className="w-full">{composer}</div>
       </div>
-    </main>
+      </main>
+
+      {/* Wider than the dock's rail because there is room for it here, and this is the surface
+          someone lingers on. Hidden below lg for the same reason it is hidden below sm in the dock. */}
+      <ModelRouter
+        busy={agent.status === "submitted" || agent.status === "streaming"}
+        className="hidden w-60 lg:flex"
+        messages={agent.data.messages}
+      />
+    </div>
   );
 }

@@ -4,10 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ButtonGroup, ButtonGroupText } from "@/components/ui/button-group";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { cjk } from "@streamdown/cjk";
 import { code } from "@streamdown/code";
-import { math } from "@streamdown/math";
-import { mermaid } from "@streamdown/mermaid";
 import type { UIMessage } from "ai";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
@@ -271,7 +268,14 @@ export const MessageBranchPage = ({ className, ...props }: MessageBranchPageProp
 
 export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 
-const streamdownPlugins = { cjk, code, math, mermaid };
+// Only the plugins this product's output can actually contain.
+//
+// This shipped with cjk, math and mermaid wired in as well, which is the default set rather than a
+// decision. Measured against the build: katex is 502 KB and shiki 792 KB, all four loaded eagerly on
+// every route because a Suspense boundary is a render boundary and not a bundling one. Steve emits
+// account briefs and prose; there is no LaTeX and no mermaid anywhere in agent/, lib/ or app/, so
+// that was a megabyte of parse cost to render text nobody writes.
+const streamdownPlugins = { code };
 
 export const MessageResponse = memo(
   ({ className, ...props }: MessageResponseProps) => (

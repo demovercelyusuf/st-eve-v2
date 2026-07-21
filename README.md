@@ -60,7 +60,6 @@ generation, so a confident-but-wrong claim or a hallucinated citation is caught 
 | Route | What |
 | --- | --- |
 | `/dashboard` | The SE's patch: at-risk, awaiting-next-step, and closed-won KPIs with per-account cards. |
-| `/board` | Opportunities by Salesforce stage, with the copilot's grounded risk read. |
 | `/accounts/[id]` | An account: opportunity, contacts, activity timeline, latest brief run. |
 | `/chat` | The copilot. |
 | `/spend` | Per-run cost, from the AI Gateway's own reported figures. |

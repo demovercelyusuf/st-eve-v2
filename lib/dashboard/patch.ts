@@ -2,7 +2,7 @@ import { cache } from "react";
 import { readPatchIssueCounts } from "../linear/account-issues";
 import { warehouseQuery } from "../warehouse/client";
 
-// The SE's patch as one read model for the dashboard and the stage board: each account with its
+// The SE's patch as one read model for the dashboard: each account with its
 // primary open opportunity (stage, amount, close date, next step, risk), a rollup of its warehouse
 // activity, and the engineering work still open against it. This is the copilot's consolidated view;
 // it reads the warehouse dimension and the mocked Salesforce schema together for a list view, while a
