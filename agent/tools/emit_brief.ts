@@ -73,8 +73,16 @@ export default defineTool({
         account: resolved.account.name,
         sources,
       });
-    } catch {
+    } catch (error) {
       // Persistence is for the audit trail, not correctness. A failure here must not block delivery.
+      //
+      // It is logged rather than swallowed silently, which it was. An unapplied migration made every
+      // one of these throw, and because nothing said so the agent kept shipping briefs while
+      // recording none of them for a day. The catch is right; the silence was not.
+      console.error("brief run not persisted", {
+        accountId,
+        reason: error instanceof Error ? error.message : String(error),
+      });
       persisted = false;
     }
 
