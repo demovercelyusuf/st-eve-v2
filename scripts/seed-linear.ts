@@ -75,20 +75,55 @@ async function labelFor(accountId: string): Promise<string> {
   return created.issueLabelCreate.issueLabel.id;
 }
 
-type ExistingIssue = { id: string; title: string; stateId: string };
+type ExistingIssue = { id: string; title: string; stateId: string; description: string };
 
 async function existingIssues(labelId: string): Promise<Map<string, ExistingIssue>> {
-  const found = await gql<{ issues: { nodes: Array<{ id: string; title: string; state: { id: string } }> } }>(
-    `query($id:ID!){ issues(filter:{labels:{id:{eq:$id}}}, first:100){ nodes { id title state { id } } } }`,
+  const found = await gql<{
+    issues: { nodes: Array<{ id: string; title: string; description: string | null; state: { id: string } }> };
+  }>(
+    `query($id:ID!){ issues(filter:{labels:{id:{eq:$id}}}, first:100){ nodes { id title description state { id } } } }`,
     { id: labelId },
   );
-  return new Map(found.issues.nodes.map((n) => [n.title, { id: n.id, title: n.title, stateId: n.state.id }]));
+  return new Map(
+    found.issues.nodes.map((n) => [
+      n.title,
+      { id: n.id, title: n.title, stateId: n.state.id, description: n.description ?? "" },
+    ]),
+  );
+}
+
+// Prefixes nothing mints any more. Kept in step with RETIRED_PREFIXES in lib/seed/examples.test.ts,
+// which guards the same thing one layer up: that guard scans prose in the repo, this one repairs
+// records already living in Linear, and neither can see what the other covers.
+const RETIRED_PREFIXES = ["ZD-"];
+
+function citesRetiredNamespace(text: string): boolean {
+  return RETIRED_PREFIXES.some((prefix) => text.includes(prefix));
+}
+
+function describeTicket(
+  ticket: (typeof ALL_ACCOUNTS)[number]["tickets"][number],
+  account: (typeof ALL_ACCOUNTS)[number],
+): string {
+  // No warehouse id in the body. Support tickets used to live in the warehouse and were mirrored
+  // here, which meant every issue carried a second id for the same thing. The warehouse no longer
+  // holds tickets, so the Linear issue IS the ticket and its own identifier is the one that resolves.
+  return [
+    ticket.body,
+    "",
+    `**Account:** ${account.name} (\`${account.accountId}\`)`,
+    `**Severity:** ${ticket.priority}${ticket.slaBreached ? " · SLA breached" : ""}`,
+    `**Raised:** ${ticket.createdAt}`,
+    "",
+    "_Seeded for the Steve demo._",
+  ].join("\n");
 }
 
 async function main() {
   const states = await workflowStates();
   let created = 0;
   let reconciled = 0;
+  let repaired = 0;
   let skipped = 0;
 
   for (const account of ALL_ACCOUNTS) {
@@ -101,35 +136,33 @@ async function main() {
 
       // Reconcile rather than skip. An issue created before the status mapping existed sits in the
       // team's default state, so skipping it leaves a resolved ticket looking open forever and a
-      // re-run can never repair it. Only the state is corrected: the title and body are the ticket's
-      // own words and a human may have improved them since.
+      // re-run can never repair it.
+      //
+      // The body is normally left alone, because it is the ticket's own words and a human may have
+      // improved them since. The exception is a body still citing a namespace nothing mints any
+      // more. Those came from a seed that predates tickets moving to Linear, and leaving them makes
+      // the demo show a fourth system that no longer exists. Preserving an operator's edits is not
+      // worth preserving a reference that cannot resolve.
       const found = already.get(title);
       if (found) {
-        if (found.stateId !== wanted) {
+        const input: Record<string, unknown> = {};
+        if (found.stateId !== wanted) input.stateId = wanted;
+        if (citesRetiredNamespace(found.description)) input.description = describeTicket(ticket, account);
+
+        if (Object.keys(input).length > 0) {
           await gql(
             `mutation($id:String!,$input:IssueUpdateInput!){ issueUpdate(id:$id, input:$input){ success } }`,
-            { id: found.id, input: { stateId: wanted } },
+            { id: found.id, input },
           );
-          reconciled += 1;
+          if (input.description) repaired += 1;
+          if (input.stateId) reconciled += 1;
         } else {
           skipped += 1;
         }
         continue;
       }
 
-      // No warehouse id in the body. Support tickets used to live in the warehouse as ZD- rows and
-      // were mirrored here, which meant every issue carried a second id for the same thing. The
-      // warehouse no longer holds tickets, so the Linear issue IS the ticket and its own identifier
-      // is the one that resolves.
-      const description = [
-        ticket.body,
-        "",
-        `**Account:** ${account.name} (\`${account.accountId}\`)`,
-        `**Severity:** ${ticket.priority}${ticket.slaBreached ? " · SLA breached" : ""}`,
-        `**Raised:** ${ticket.createdAt}`,
-        "",
-        "_Seeded for the Steve demo._",
-      ].join("\n");
+      const description = describeTicket(ticket, account);
 
       await gql(
         `mutation($input:IssueCreateInput!){ issueCreate(input:$input){ success } }`,
@@ -150,7 +183,9 @@ async function main() {
     console.log(`${account.accountId} ${account.name}: ${account.tickets.length} tickets`);
   }
 
-  console.log(`\ncreated ${created}, state corrected ${reconciled}, already correct ${skipped}`);
+  console.log(
+    `\ncreated ${created}, state corrected ${reconciled}, body repaired ${repaired}, already correct ${skipped}`,
+  );
 }
 
 main().catch((error) => {

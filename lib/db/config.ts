@@ -11,6 +11,9 @@ export function pgPoolConfig(connectionString: string): PoolConfig {
   return {
     connectionString: url.toString(),
     max: 4,
+    // A hung connect is the same failure class as a hung Vault call: it turns a brief into a
+    // request that never returns rather than an error anyone can act on.
+    connectionTimeoutMillis: 5_000,
     idleTimeoutMillis: 10_000,
     ssl: isLocal ? undefined : { rejectUnauthorized: false },
   };
