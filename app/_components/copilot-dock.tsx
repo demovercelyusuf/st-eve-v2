@@ -5,8 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { UseEveAgentStatus } from "eve/react";
-import { AlertCircleIcon, Maximize2Icon, XIcon } from "lucide-react";
-import { type KeyboardEvent, useCallback, useEffect, useRef } from "react";
+import { AlertCircleIcon } from "lucide-react";
+import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 import {
   Conversation,
   ConversationContent,
@@ -21,6 +21,7 @@ import {
 import { cn } from "@/lib/utils";
 import { AgentMessage } from "./agent-message";
 import { AgentStatusDot } from "./agent-status-dot";
+import { ModelRouter } from "./model-router";
 import { useCopilot } from "./copilot-provider";
 import { isSendable, toAgentMessage } from "./prompt-message";
 
@@ -49,6 +50,11 @@ export function CopilotDock() {
   const pathname = usePathname();
   const { agent, close, hasUnread, isOpen, open } = useCopilot();
   const launcherRef = useRef<HTMLButtonElement>(null);
+  // Real window controls rather than decoration: yellow collapses to the title bar, green fills
+  // the screen. Minimising is the one an SE actually uses, because it parks a streaming turn
+  // without closing the session behind it.
+  const [minimized, setMinimized] = useState(false);
+  const [maximized, setMaximized] = useState(false);
   const shouldRestoreFocusRef = useRef(false);
   const isHidden = HIDDEN_ROUTES.has(pathname);
 
@@ -161,36 +167,53 @@ export function CopilotDock() {
     // timeline they are asking about, and a scrim would grey out the thing they are reading.
     <div
       aria-label="Steve, the copilot"
-      className="fixed inset-x-0 bottom-0 z-50 flex h-[72dvh] flex-col overflow-hidden rounded-t-xl border border-border bg-card pb-[env(safe-area-inset-bottom)] shadow-2xl sm:inset-x-auto sm:right-4 sm:bottom-4 sm:h-[min(34rem,calc(100dvh-6rem))] sm:w-[26rem] sm:rounded-xl"
+      className={cn(
+        "fixed z-50 flex flex-col overflow-hidden border border-border bg-card shadow-2xl",
+        "inset-x-0 bottom-0 rounded-t-xl pb-[env(safe-area-inset-bottom)] sm:inset-x-auto sm:rounded-xl",
+        maximized
+          ? "top-0 h-dvh sm:inset-3 sm:h-auto"
+          : minimized
+            ? "h-auto sm:right-4 sm:bottom-4 sm:w-[min(40rem,calc(100vw-2rem))]"
+            : "h-[72dvh] sm:right-4 sm:bottom-4 sm:h-[min(34rem,calc(100dvh-6rem))] sm:w-[min(40rem,calc(100vw-2rem))]",
+      )}
       onKeyDown={handlePanelKeyDown}
       role="dialog"
     >
       <header className="flex h-11 shrink-0 items-center gap-2 border-border border-b pr-1.5 pl-3">
-        <span aria-hidden className="inline-block size-2 rounded-full bg-emerald-500" />
-        <span className="font-medium text-sm">Steve</span>
+        <Light color="#ff5f56" glyph="×" label="Close" onClick={dismiss} />
+        <Light
+          color="#ffbd2e"
+          glyph="–"
+          label={minimized ? "Expand" : "Minimize"}
+          onClick={() => {
+            setMaximized(false);
+            setMinimized((m) => !m);
+          }}
+        />
+        <Light
+          color="#27c93f"
+          glyph="+"
+          label={maximized ? "Restore" : "Full screen"}
+          onClick={() => {
+            setMinimized(false);
+            setMaximized((m) => !m);
+          }}
+        />
+        <span className="ml-1.5 font-medium text-sm">Steve</span>
         <AgentStatusDot status={agent.status} />
-        <span className="ml-auto flex items-center">
-          {/* The same conversation, larger. Worth its own control because the dock deliberately
-              condenses a brief, and this is the way to the full one. */}
-          <Link
-            className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            href="/chat"
-            onClick={close}
-          >
-            <Maximize2Icon className="size-4" />
-            <span className="sr-only">Open the full view</span>
-          </Link>
-          <button
-            className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            onClick={dismiss}
-            type="button"
-          >
-            <XIcon className="size-4" />
-            <span className="sr-only">Close the copilot</span>
-          </button>
-        </span>
+        <Link
+          className="ml-auto rounded-md px-2 py-1 text-muted-foreground text-xs transition-colors hover:bg-muted hover:text-foreground"
+          href="/chat"
+          onClick={close}
+        >
+          Full page
+        </Link>
       </header>
 
+      {/* Everything below the title bar collapses when minimized, so the yellow light parks the
+          panel as a title bar without ending the turn streaming inside it. */}
+      <div className={cn("flex min-h-0 flex-1", minimized && "hidden")}>
+        <div className="flex min-h-0 flex-1 flex-col">
       {agent.error ? (
         <div className="shrink-0 px-3 pt-2">
           <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-2.5 py-2 text-xs">
@@ -238,19 +261,59 @@ export function CopilotDock() {
         </Conversation>
       )}
 
-      <div className="shrink-0 border-border border-t p-2">
-        <PromptInput onSubmit={handleSubmit}>
-          {/* autoFocus, because the panel mounts only when the SE has just asked for it by click or
-              by ⌘K, and the only thing to do with it is type. */}
-          <PromptInputTextarea
-            autoFocus
-            className="min-h-14"
-            placeholder="Ask about an account…"
-          />
-          <PromptInputSubmit onStop={agent.stop} status={agent.status} />
-        </PromptInput>
+          <div className="shrink-0 border-border border-t p-2">
+            <PromptInput onSubmit={handleSubmit}>
+              {/* autoFocus, because the panel mounts only when the SE has just asked for it by click
+                  or by ⌘K, and the only thing to do with it is type. */}
+              <PromptInputTextarea
+                autoFocus
+                className="min-h-14"
+                placeholder="Ask about an account…"
+              />
+              <PromptInputSubmit onStop={agent.stop} status={agent.status} />
+            </PromptInput>
+          </div>
+        </div>
+
+        {/* Hidden below sm. On a phone the panel is already a bottom sheet and 13rem of routing
+            table would take the conversation's whole width to say something nobody reads on a
+            phone. */}
+        <ModelRouter
+          busy={isBusy(agent.status)}
+          className="hidden sm:flex"
+          messages={agent.data.messages}
+        />
       </div>
     </div>
+  );
+}
+
+// A traffic light. The glyph only appears on hover, the way a real one does, but the button carries
+// its label for anyone who cannot see the colour or the hover.
+function Light({
+  color,
+  glyph,
+  label,
+  onClick,
+}: {
+  color: string;
+  glyph: string;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      aria-label={label}
+      className="group grid size-3 place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+      onClick={onClick}
+      style={{ background: color }}
+      title={label}
+      type="button"
+    >
+      <span className="font-bold text-[8px] text-black/60 leading-none opacity-0 transition-opacity group-hover:opacity-100">
+        {glyph}
+      </span>
+    </button>
   );
 }
 
