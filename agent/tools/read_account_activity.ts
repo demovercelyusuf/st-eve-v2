@@ -4,12 +4,12 @@ import { explainRefusal, resolveAccountForCaller } from "../../lib/auth/access";
 import { callerFromSession } from "../../lib/auth/scope";
 import { getAccountActivity } from "../../lib/warehouse/repository";
 
-// Reads an account's history from the warehouse: Zendesk-shaped tickets, Gong-shaped call notes, and
-// product-usage trends, each row carrying a citable activity id (ZD-, GONG-, USG-). This is the
+// Reads what the warehouse holds for an account: Gong-shaped call notes with transcripts and weekly
+// product-usage series, each row carrying a citable activity id (GONG-, USG-). This is the
 // "read across the boundary in bulk" path. Every claim in a brief must cite one of these ids.
 export default defineTool({
   description:
-    "Read an account's activity history from the warehouse: support tickets, call notes, and product-usage trends, each with a citable activity id (for example ZD-4471, GONG-902, USG-2207). Accepts an account name or id. Use these ids as citations in the brief.",
+    "Read an account's activity history from the warehouse: call notes and product-usage trends, each with a citable activity id (for example GONG-902, USG-2207). Support tickets are in Linear, read with read_linear_issues. Accepts an account name or id. Use these ids as citations in the brief.",
   inputSchema: z.object({
     account: z
       .string()

@@ -20,7 +20,7 @@ const base: BriefCardInput = {
       priority: "high",
       text: "Give Northwind a build date for the CDC failover fix.",
       owner: "SE + Engineering",
-      citations: ["ZD-4462"],
+      citations: ["LIN-DEM-8"],
     },
   ],
   stageRead: {
@@ -31,7 +31,7 @@ const base: BriefCardInput = {
     signals: ["A failover drill lost 41,900 rows."],
   },
   needsReview: [],
-  citedIds: ["ZD-4462"],
+  citedIds: ["LIN-DEM-8"],
   grounding: { shippedClaims: 1, citedClaims: 1, droppedClaims: 0 },
 };
 
@@ -86,13 +86,13 @@ describe("brief card", () => {
     const rendered = JSON.stringify(
       blocksOf({
         ...base,
-        nextSteps: [{ ...base.nextSteps[0], citations: ["LIN-VAN-412", "ZD-4462"] }],
+        nextSteps: [{ ...base.nextSteps[0], citations: ["LIN-VAN-412", "GONG-902"] }],
         sources: [{ citationId: "LIN-VAN-412", url: "https://linear.app/x/issue/VAN-412" }],
       }),
     );
     // Live sources become clickable; warehouse ids stay plain chips.
     expect(rendered).toContain("linear.app");
-    expect(rendered).toContain("ZD-4462");
+    expect(rendered).toContain("GONG-902");
   });
 
   it("escapes mrkdwn control characters from customer text", () => {

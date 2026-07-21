@@ -72,17 +72,18 @@ async function main() {
         continue;
       }
 
-      // The warehouse id travels in the body on purpose. It is how a human reading the Linear issue
-      // gets back to the record the brief cited, and it is what makes the two systems legible as one
-      // account story rather than two unrelated lists.
+      // No warehouse id in the body. Support tickets used to live in the warehouse as ZD- rows and
+      // were mirrored here, which meant every issue carried a second id for the same thing. The
+      // warehouse no longer holds tickets, so the Linear issue IS the ticket and its own identifier
+      // is the one that resolves.
       const description = [
         ticket.body,
         "",
         `**Account:** ${account.name} (\`${account.accountId}\`)`,
-        `**Support ticket:** \`${ticket.ticketId}\` · ${ticket.priority} · ${ticket.status}${ticket.slaBreached ? " · SLA breached" : ""}`,
+        `**Severity:** ${ticket.priority} · ${ticket.status}${ticket.slaBreached ? " · SLA breached" : ""}`,
         `**Raised:** ${ticket.createdAt}`,
         "",
-        "_Seeded for the Steve demo from the account activity warehouse._",
+        "_Seeded for the Steve demo._",
       ].join("\n");
 
       await gql(
