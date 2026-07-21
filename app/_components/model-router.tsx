@@ -96,7 +96,7 @@ export function ModelRouter({
           THIS TURN
         </p>
         {routed === undefined ? (
-          <p className="text-muted-foreground/60">no calls yet</p>
+          <p className="text-muted-foreground">no calls yet</p>
         ) : (
           <>
             <p className="flex items-center gap-1.5">

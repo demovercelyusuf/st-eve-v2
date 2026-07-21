@@ -46,16 +46,20 @@ async function PatchSubtitle() {
 }
 
 // Sized to the real thing rather than a spinner, so the shell does not reflow when the data lands.
+//
+// These are measured, not guessed. The previous values were a guess and they were wrong by 373px on
+// the table, which is a third of a screen of layout shift on the route a demo opens on. 86px is one
+// KPI tile and 757px is eleven rows plus the header, which is the whole seeded patch.
 function PatchSkeleton() {
   return (
     <>
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[0, 1, 2, 3].map((i) => (
-          <div className="h-[76px] animate-pulse rounded-xl border border-border bg-card" key={i} />
+          <div className="h-[86px] animate-pulse rounded-xl border border-border bg-card" key={i} />
         ))}
       </div>
       <div className="mt-6 h-9 animate-pulse rounded-md border border-border bg-card" />
-      <div className="mt-3 h-96 animate-pulse rounded-xl border border-border bg-card" />
+      <div className="mt-3 h-[757px] animate-pulse rounded-xl border border-border bg-card" />
     </>
   );
 }

@@ -1,14 +1,14 @@
 export function RiskBadge({ risk }: { risk: string | null }) {
   if (risk === "At Risk") {
     return (
-      <span className="rounded-full bg-amber-500/15 px-2 py-0.5 font-medium text-amber-700 text-xs dark:text-amber-400">
+      <span className="rounded-full bg-amber-500/15 px-2 py-0.5 font-medium text-amber-800 text-xs dark:text-amber-400">
         At risk
       </span>
     );
   }
   if (risk === "Commit") {
     return (
-      <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 font-medium text-emerald-700 text-xs dark:text-emerald-400">
+      <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 font-medium text-emerald-800 text-xs dark:text-emerald-400">
         Commit
       </span>
     );

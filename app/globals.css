@@ -1,6 +1,16 @@
 @import "tailwindcss";
 @source "../node_modules/streamdown/dist/*.js";
 
+/* Bind dark: to the selected skin rather than to the OS.
+ *
+ * Tailwind compiles dark: to a prefers-color-scheme query by default. Every skin here is an
+ * attribute on the root element and the comment below says prefers-color-scheme is deliberately not
+ * used, so the two were pointing at different things: a dark:text-amber-400 rendered its light value
+ * while the dark skin was active, and its dark value while the light skin was active on a dark-mode
+ * machine. Both directions produced real contrast failures, around 1.4:1 in the worst case, and
+ * neither was visible on a developer machine that happened to match. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

@@ -4,6 +4,10 @@ import { Wordmark } from "@/app/_components/wordmark";
 
 // The front door, and nothing else.
 //
+// The copy is deliberately source-agnostic. An earlier version named the warehouse, Salesforce and
+// Linear, which are this demo's seed data rather than the product: the claim is that it reads
+// whatever an org already runs on, and naming three systems quietly shrinks that to three systems.
+//
 // This was six scrolling sections explaining the product: the problem, the boundary, the steps, a
 // sample brief. All of that is a deck now, presented by someone who can read the room, which is a
 // better medium for it than a page nobody scrolls to the bottom of. What is left has one job, which
@@ -47,20 +51,20 @@ export default function Page() {
         <Rise>
           <p className="flex items-center justify-center gap-2 font-medium text-muted-foreground text-sm">
             <span aria-hidden className="inline-block size-1.5 rounded-full bg-emerald-500" />
-            The vercelian SE copilot
+            The vercelian copilot for the technical win
           </p>
         </Rise>
 
         <Rise delay={60}>
           <h1 className="mt-4 text-balance font-semibold text-4xl tracking-tight sm:text-5xl sm:leading-[1.05] lg:text-6xl">
-            Every claim carries the record that backs it.
+            Accelerate the technical win.
           </h1>
         </Rise>
 
         <Rise delay={120}>
           <p className="mt-5 max-w-lg text-balance text-muted-foreground leading-relaxed sm:text-lg">
-            Steve reads your warehouse, Salesforce and Linear, and hands you the brief. What is
-            blocking, which record proves it, and what happens next.
+            Full visibility into the technical progress of every account your team is
+            responsible for.
           </p>
         </Rise>
 
@@ -84,7 +88,7 @@ export default function Page() {
 
       <footer className="shrink-0 px-6 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-center">
         <p className="text-muted-foreground text-xs">
-          Grounded in the account&apos;s own records. Nothing it cannot cite gets shipped.
+          Every source your org already runs on. Modern or legacy, connected or not.
         </p>
       </footer>
     </div>
