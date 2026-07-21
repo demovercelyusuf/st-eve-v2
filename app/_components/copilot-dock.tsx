@@ -128,6 +128,7 @@ export function CopilotDock() {
       <button
         aria-haspopup="dialog"
         aria-label="Ask Steve"
+        data-tour="dock"
         className="press fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-50 flex items-center gap-2 rounded-full pr-1 pl-1 transition-transform hover:scale-105"
         onClick={open}
         ref={launcherRef}

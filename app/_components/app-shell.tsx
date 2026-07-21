@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
 import { MobileNav } from "./mobile-nav";
+import { ProductTour, TourButton } from "./product-tour";
 import { NavLinks, SidebarNav } from "./sidebar-nav";
 import { ThemeSwitcher } from "./theme-switcher";
 
@@ -27,15 +28,20 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
         </div>
 
-        <div className="flex items-center gap-3" data-tour="themes">
-          <ThemeSwitcher />
+        <div className="flex items-center gap-3">
+          {/* Hidden on the narrowest screens: the tour still runs itself once for a first-time
+              visitor there, and a replay button is not worth the header room on a phone. */}
+          <TourButton className="hidden sm:inline-flex" />
+          <div data-tour="themes">
+            <ThemeSwitcher />
+          </div>
         </div>
       </header>
 
       <div className="flex min-h-0 flex-1">
         <aside
           className="hidden w-56 shrink-0 border-border border-r p-4 lg:block"
-          data-tour="nav-desktop"
+          data-tour="nav"
         >
           <p className="mb-2 px-3 font-semibold text-[11px] text-muted-foreground tracking-wide">
             WORKSPACE
@@ -49,6 +55,8 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <main className="min-w-0 flex-1">{children}</main>
       </div>
+
+      <ProductTour />
     </div>
   );
 }

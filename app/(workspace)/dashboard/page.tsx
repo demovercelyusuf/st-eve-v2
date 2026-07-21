@@ -98,18 +98,20 @@ async function PatchBody() {
 
   return (
     <>
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4" data-tour="kpis">
         <Kpi label="At risk" tone="risk" value={String(atRisk)} />
         <Kpi label="Awaiting next step" value={String(awaiting)} />
         <Kpi label="Closed won" value={String(wins)} />
         <Kpi label="Book" value={fmtArr(book)} />
       </div>
 
-      <PatchTable
-        engineeringComplete={engineering.complete}
-        engineeringConnected={engineering.connected}
-        rows={tableRows}
-      />
+      <div data-tour="patch">
+        <PatchTable
+          engineeringComplete={engineering.complete}
+          engineeringConnected={engineering.connected}
+          rows={tableRows}
+        />
+      </div>
     </>
   );
 }
