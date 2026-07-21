@@ -48,7 +48,7 @@ export default function Page() {
       <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
         <span className="flex items-center gap-2 font-medium">
           <span className="inline-block size-2 rounded-full bg-emerald-500" aria-hidden />
-          Vantage Copilot
+          Steve
         </span>
         <nav className="flex items-center gap-1 text-sm">
           <Link
@@ -68,13 +68,13 @@ export default function Page() {
 
       <section className="mx-auto max-w-5xl px-6 pt-10 pb-14 sm:pt-16">
         <p className="font-medium text-muted-foreground text-sm uppercase tracking-wide">
-          Revenue-Ops Copilot
+          The enterprise copilot for the technical win
         </p>
         <h1 className="mt-3 max-w-3xl text-balance font-semibold text-4xl tracking-tight sm:text-5xl">
           Reconstruct any account into a cited weekly brief in under two minutes.
         </h1>
         <p className="mt-5 max-w-2xl text-lg text-muted-foreground">
-          A grounded copilot for Vantage Solutions Engineers. It reads across your existing stack,
+          A grounded copilot for Solutions Engineers and Solutions Architects. It reads across your existing stack,
           drafts the brief, and cites every claim against a real activity. If a claim cannot be
           grounded, it does not ship.
         </p>

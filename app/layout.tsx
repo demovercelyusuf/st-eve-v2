@@ -20,7 +20,7 @@ const mono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Vantage Revenue-Ops Copilot",
+  title: "Steve, the enterprise copilot for the technical win",
   description: "A grounded copilot that reconstructs any account into a cited weekly brief.",
 };
 

@@ -14,7 +14,7 @@ export function Nav({ active }: { active?: Tab }) {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
         <Link href="/" className="flex items-center gap-2 font-medium">
           <span className="inline-block size-2 rounded-full bg-emerald-500" aria-hidden />
-          Vantage Copilot
+          Steve
         </Link>
         <nav className="flex items-center gap-1 text-sm">
           <Link href="/dashboard" className={cls(active === "patch")}>

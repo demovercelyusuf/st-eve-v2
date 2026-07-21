@@ -1,11 +1,17 @@
-# Vantage Revenue-Ops Copilot
+# Steve
+
+The enterprise copilot for the technical win.
 
 [![CI](https://github.com/demovercelyusuf/st-eve-v2/actions/workflows/ci.yml/badge.svg)](https://github.com/demovercelyusuf/st-eve-v2/actions/workflows/ci.yml)
 
-A grounded copilot that reconstructs any account into a cited weekly brief for Solutions Engineers. It
-runs on Vercel and reads across a boundary into the systems that stay in place: Salesforce, an
-account-activity warehouse, and Slack. Every claim it makes is backed by a real activity, or it does
-not ship.
+A grounded copilot for Solutions Engineers, Solutions Architects and technical leaders. Ask it in
+Slack and it reconstructs an account into a cited brief: where the evaluation actually stands, what is
+technically blocked, and what to do next.
+
+It runs on Vercel and reads across a boundary into three systems that stay where they are: an
+account-activity warehouse in AWS (Gong calls, Zendesk tickets, product usage), Salesforce, and Linear
+for engineering's view of the account. Every claim carries the record id that backs it, and anything
+that cannot be grounded does not ship.
 
 **Live demo:** https://st-eve-v2.vercel.app
 
