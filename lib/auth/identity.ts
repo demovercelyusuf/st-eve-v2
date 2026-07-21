@@ -5,7 +5,7 @@
 // in front of them before they had seen anything worth deciding about.
 //
 // The identity itself stays, and it is not ceremony. Vercel Connect mints user-subject tokens, and
-// Notion issues nothing else, so a token cannot be requested without a principal to attach it to.
+// Linear is read with one, so a token cannot be requested without a principal to attach it to.
 // This is that principal. In production it arrives from Okta through eve's oidc() authenticator and
 // the id becomes the OIDC subject; nothing downstream changes, because everything downstream only
 // ever reads these three fields.

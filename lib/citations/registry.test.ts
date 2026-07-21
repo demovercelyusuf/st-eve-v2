@@ -8,7 +8,7 @@ describe("citation registry", () => {
     expect(sourceFor("ZD-4471")?.kind).toBe("ticket");
     expect(sourceFor("GONG-902")?.kind).toBe("call");
     expect(sourceFor("LIN-VAN-412")?.kind).toBe("linear");
-    expect(sourceFor("NTN-1f2c3d4e#7b2a9c10")?.kind).toBe("notion");
+    expect(sourceFor("OPP-2041-P")?.kind).toBe("opportunity");
   });
 
   it("refuses to attribute something that is not a citation id", () => {

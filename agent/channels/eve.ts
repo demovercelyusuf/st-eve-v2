@@ -7,7 +7,7 @@ import { OPERATOR } from "../../lib/auth/identity";
 //
 // This is not the same as none(), and the difference is the whole reason it exists. none() means the
 // turn has no principal at all, and Vercel Connect cannot mint a user-subject token without one, so
-// Notion would be unreachable. Attaching a fixed principal keeps the agent usable by anyone who can
+// the Connect-backed reads would be unreachable. Attaching a fixed principal keeps the agent usable by anyone who can
 // reach the deployment while still giving the outbound credential path somebody to be.
 //
 // Say the tradeoff out loud rather than hiding it: this authenticates nobody. Anyone who can reach

@@ -22,7 +22,7 @@ const LINEAR_CONNECTOR = "linear/byzantine-pebble";
 // App-scoped, not user-scoped, and that choice is what makes Linear work at all here.
 //
 // connect(connector) defaults to a user subject, which needs each person to complete a device-code
-// handshake before their first read. Notion has no alternative to that, which is why it is parked.
+// handshake before their first read, which is a real cost for a source read on every brief.
 // Linear's connector carries app scopes as well, and the app is already installed in the workspace,
 // so an app token needs no per-person grant and every SE sees the same account issues.
 //

@@ -36,7 +36,7 @@ export default defineTool({
     // Three ways an id becomes citable, and they are genuinely different claims.
     //
     // A warehouse id is citable because a row exists in fct_account_activity. A Salesforce id is
-    // citable because the adapter returned that record just now. A Linear or Notion id is citable
+    // citable because the adapter returned that record just now. A Linear id is citable
     // because a read tool recorded it in the evidence ledger during this session, for this account,
     // which is the only check available for a system we hold no table for.
     //
@@ -59,7 +59,7 @@ export default defineTool({
     const result = enforceCitations(brief, knownIds, describeUnresolved);
 
     // The clickable half of a citation. Warehouse and Salesforce ids render as plain chips because
-    // they resolve inside this app; Linear and Notion carry a url back to the record, so an engineer
+    // they resolve inside this app; Linear ids carry a url back to the record, so an engineer
     // who has never heard of Steve can click the evidence.
     const sources = result.citedIds.map((id) => live.get(id) ?? { citationId: id, source: null });
 
