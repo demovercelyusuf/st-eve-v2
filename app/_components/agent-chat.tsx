@@ -1,6 +1,7 @@
 "use client";
 
 import type { UserContent } from "ai";
+import Link from "next/link";
 import { useEveAgent } from "eve/react";
 import { AlertCircleIcon } from "lucide-react";
 import {
@@ -67,14 +68,23 @@ export function AgentChat() {
 
   return (
     <main className="flex h-dvh flex-col overflow-hidden bg-background text-foreground">
-      {isEmpty ? null : (
-        <header className="flex h-14 shrink-0 items-center justify-center gap-3 pl-4 pr-2">
+      {/* The way out. This page takes the full viewport with no nav, so without a link back it is a
+          trap: a reviewer who opens the copilot first has to reach for the browser's back button to
+          find anything else. Shown even on the empty state for that reason. */}
+      <header className="flex h-14 shrink-0 items-center justify-between gap-3 pr-4 pl-4">
+        <Link
+          className="text-muted-foreground text-sm transition-colors hover:text-foreground"
+          href="/dashboard"
+        >
+          &larr; Your patch
+        </Link>
+        {isEmpty ? null : (
           <span className="flex min-w-0 items-center gap-2">
             <span className="truncate text-muted-foreground text-sm">{AGENT_NAME}</span>
             <StatusDot status={agent.status} />
           </span>
-        </header>
-      )}
+        )}
+      </header>
 
       {agent.error ? (
         <div className="mx-auto w-full max-w-3xl shrink-0 px-4 pt-2 sm:px-6">

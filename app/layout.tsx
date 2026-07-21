@@ -19,9 +19,27 @@ const mono = Geist_Mono({
   display: "swap",
 });
 
+// metadataBase is what makes the open-graph image resolve to an absolute url. Without it a link to
+// this deployment unfurls as nothing, which is most of what a reviewer sees before they open it.
 export const metadata: Metadata = {
-  title: "Steve, the enterprise copilot for the technical win",
-  description: "A grounded copilot that reconstructs any account into a cited weekly brief.",
+  metadataBase: new URL(
+    process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : "http://localhost:3000",
+  ),
+  title: {
+    default: "Steve, the enterprise copilot for the technical win",
+    // Per-page titles read as "Northwind Trading Co. · Steve" rather than each page repeating the
+    // full product line, which is what a browser tab has room for.
+    template: "%s · Steve",
+  },
+  description:
+    "A grounded copilot for Solutions Engineers. It reads across Salesforce, an account-activity warehouse and Linear, and every claim it makes carries the record that backs it.",
+  openGraph: {
+    title: "Steve, the enterprise copilot for the technical win",
+    description: "Every claim carries the record that backs it, or it does not ship.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({ children }: { readonly children: ReactNode }) {
