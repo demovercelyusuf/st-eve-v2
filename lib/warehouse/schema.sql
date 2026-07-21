@@ -82,3 +82,26 @@ create table sfdc.contacts (
   role       text,                     -- champion | economic_buyer | influencer | user | blocker
   active     boolean not null default true
 );
+
+-- Re-grant the dynamic reader's privileges. This file drops both schemas at the top, and a drop
+-- takes every grant on them with it, so without this block a reseed silently disarms Vault: it can
+-- still mint a role, that role still connects, and every query it runs comes back permission denied.
+-- The failure surfaces as a 500 in the product rather than as an error in the seed, which is the
+-- worst possible place to find out.
+--
+-- steve_reader itself is created once by terraform/bootstrap/01-vault-admin.sql. Only the grants
+-- need restoring here, and the guard means the seed still runs on a database where Vault was never
+-- set up (local dev against a scratch Postgres, for instance).
+do $$
+begin
+  if exists (select 1 from pg_roles where rolname = 'steve_reader') then
+    grant usage on schema activity, sfdc to steve_reader;
+    grant select on all tables in schema activity, sfdc to steve_reader;
+    alter default privileges in schema activity, sfdc grant select on tables to steve_reader;
+  end if;
+end
+$$;
+
+-- Note for whoever hits this next: readers minted before a reseed keep working until their lease
+-- expires, because the role still exists and the grants above are restored underneath it. A reader
+-- minted during the window between the drop and this block will fail. It self-heals within one TTL.
