@@ -18,10 +18,10 @@ import { Wordmark } from "@/app/_components/wordmark";
 // fold, that space starts collecting paragraphs again.
 //
 // min-h-dvh rather than h-dvh with overflow hidden, and the difference matters in exactly one place.
-// Measured, the content needs 566px of height with the mascot and 438px without it, so on every
-// realistic viewport there is nothing to scroll and the page reads as a single screen. A landscape
-// phone has around 330px, and clipping is the wrong failure there: it would hide the only button on
-// the page. This degrades to a short scroll instead, which nobody will see and nobody is stuck in.
+// Everything below the call to action is height-gated so it can never push the button off screen, so
+// on any realistic viewport there is nothing to scroll and the page reads as a single screen. A
+// landscape phone has around 330px, and clipping is the wrong failure there: it would hide the only
+// button on the page. This degrades to a short scroll instead, which nobody will see.
 //
 // It reads no data and ships as static HTML, and its entire motion budget is CSS, so there is no
 // client bundle on the critical path. That is most of why this route can hold a perfect performance
@@ -31,7 +31,7 @@ export default function Page() {
     <div className="flex min-h-dvh flex-col bg-background text-foreground">
       {/* The landing owns its own chrome rather than borrowing the workspace shell, so it reads as a
           product page and not as somewhere you are already signed in. */}
-      <header className="flex shrink-0 items-center justify-between px-6 py-5">
+      <header className="flex shrink-0 items-center px-6 py-5">
         <span className="flex items-center gap-2">
           <Wordmark />
           {/* The version, stated rather than implied. This is a second pass at the idea and the
@@ -40,16 +40,9 @@ export default function Page() {
             v2
           </span>
         </span>
-        <Link
-          className="press rounded-md bg-primary px-3.5 py-2 font-medium text-primary-foreground text-sm"
-          href="/dashboard"
-          prefetch
-        >
-          Launch Steve
-        </Link>
       </header>
 
-      <main className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 pb-4 text-center">
+      <main className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 pb-[max(2rem,env(safe-area-inset-bottom))] text-center">
         {/* Steve introduces the page rather than trailing it. He is the thing people recognise
             across the app, so he belongs above the line that names what he is, not below the proof.
             Sized down from the old hero treatment because he now sits on top of the whole stack. */}
@@ -76,9 +69,9 @@ export default function Page() {
         </Rise>
 
         <Rise className="mt-8" delay={180}>
-          {/* Prefetched. The workspace carries the copilot runtime, which this page deliberately
-              does not load, so the first click into it is the one navigation worth paying for early.
-              Both CTAs point at the same route, so the second request is served from cache. */}
+          {/* The only way in, and prefetched. The workspace carries the copilot runtime, which this
+              page deliberately does not load, so this is the one navigation worth paying for early.
+              A second copy in the header was redundant next to a button this size. */}
           <Link
             className="press inline-flex items-center gap-2 rounded-md bg-primary px-6 py-3 font-medium text-primary-foreground"
             href="/dashboard"
@@ -104,12 +97,6 @@ export default function Page() {
           <SlackPreview />
         </Rise>
       </main>
-
-      <footer className="shrink-0 px-6 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-center">
-        <p className="text-muted-foreground text-xs">
-          Every source your org already runs on. Modern or legacy, connected or not.
-        </p>
-      </footer>
     </div>
   );
 }
