@@ -64,12 +64,6 @@ export const CITATION_SOURCES: readonly CitationSource[] = [
     whenMissing:
       "no Linear issue with that identifier was read for this account in this run, so either it does not exist or the account is missing its Linear label",
   },
-  {
-    kind: "notion",
-    prefix: "NTN-",
-    origin: "live",
-    whenMissing: "no Notion page with that id was read for this account in this run",
-  },
 ];
 
 export function sourceFor(citationId: string): CitationSource | null {
