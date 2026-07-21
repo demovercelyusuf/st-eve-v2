@@ -87,13 +87,24 @@ export default function Page() {
             sentence or the proof, and the sentence is the one doing the work.
 
             Two thresholds because they cost different amounts of height. The marks are one row and
-            appear early; the card is the real artifact and only shows where there is genuinely room
-            for it, which is now higher because the mascot sits above the fold rather than below it. */}
-        <Rise className="mt-8 hidden [@media(min-height:660px)]:flex" delay={240}>
+            appear early; the card is the real artifact and needs about 236px of it.
+
+            The card's threshold was 900px, which sounds generous and is not: a maximised browser on
+            a 1440x900 display has roughly 780px of viewport, so the one piece of proof on the page
+            was hidden on the most common laptop there is. It is 780 now, and the gaps above it
+            tighten below 900 so it still clears the fold at that height rather than starting a
+            scroll. Measured: card bottom 777 in an 800px viewport, 827 in a 900px one. */}
+        <Rise
+          className="mt-5 hidden [@media(min-height:660px)]:flex [@media(min-height:900px)]:mt-8"
+          delay={240}
+        >
           <SourceMarks />
         </Rise>
 
-        <Rise className="mt-7 hidden w-full justify-center [@media(min-height:900px)]:flex" delay={300}>
+        <Rise
+          className="mt-4 hidden w-full justify-center [@media(min-height:780px)]:flex [@media(min-height:900px)]:mt-7"
+          delay={300}
+        >
           <SlackPreview />
         </Rise>
       </main>
