@@ -69,7 +69,7 @@ export const citations = pgTable(
 // What the agent actually read from a live system during one run.
 //
 // Warehouse rows are citable because they exist in fct_account_activity, which the gate can check
-// against directly. Notion pages and Linear issues have no such table on our side, so citability has
+// against directly. Linear issues have no such table on our side, so citability has
 // to come from somewhere else: a read tool records what it returned, and the gate resolves citations
 // against that.
 //
@@ -83,7 +83,7 @@ export const evidence = pgTable(
     sessionId: text("session_id").notNull(),
     citationId: text("citation_id").notNull(),
     accountId: text("account_id").notNull(),
-    source: text("source").notNull(), // linear | notion
+    source: text("source").notNull(), // linear
     label: text("label").notNull(),
     url: text("url"),
     recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull().defaultNow(),

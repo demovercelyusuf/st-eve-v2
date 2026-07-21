@@ -4,13 +4,16 @@ import { appStore, schema } from "../appstore/client";
 // The record of what Steve read from a live system during one run, and therefore what it is allowed
 // to cite from that system.
 //
-// A read tool writes here, the gate reads from here. That indirection is what lets a Notion page or a
-// Linear issue be citable at all: neither has a row in the warehouse for the gate to check against,
-// so "did we actually read this" becomes the check instead.
+// A read tool writes here, the gate reads from here. That indirection is what lets a Linear issue be
+// citable at all: it has no row in the warehouse for the gate to check against, so "did we actually
+// read this" becomes the check instead.
+//
+// The source column is deliberately not an enum. Linear is the only live source today, and the shape
+// of this table is what a second one would slot into rather than a schema change.
 
 export type EvidenceRef = {
   citationId: string;
-  source: "linear" | "notion";
+  source: "linear";
   label: string;
   url: string | null;
 };

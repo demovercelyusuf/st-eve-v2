@@ -22,6 +22,17 @@ import emitBrief from "../tools/emit_brief";
 // rather than an env var edit and a redeploy.
 const SLACK_CONNECTOR = "slack/steve-v2";
 
+// Best effort, and swallowed on purpose. This runs on the inbound webhook side before the runtime
+// cold-starts, and a thrown error here drops the mention entirely: failing to show a typing indicator
+// must never cost the SE their brief.
+async function startedTyping(ctx: { thread: { startTyping(text?: string): Promise<unknown> } }) {
+  try {
+    await ctx.thread.startTyping("Reading the warehouse and the CRM...");
+  } catch {
+    // no signal is worse than a wrong signal, but neither is worth a dropped turn
+  }
+}
+
 export default slackChannel({
   credentials: connectSlackCredentials(SLACK_CONNECTOR),
 
@@ -31,11 +42,23 @@ export default slackChannel({
 
   // Drop anything a bot authored. The default dispatches whatever arrives, and a bot-authored mention
   // would let one integration start agent turns in a loop.
-  onAppMention: (ctx, message) =>
-    message.author && !message.author.isBot ? { auth: defaultSlackAuth(message, ctx) } : null,
+  //
+  // The typing indicator is restored by hand here, and that is not decoration. Overriding
+  // onAppMention replaces the framework default, which posted one, so the first version of this file
+  // silently removed the only sign that anything was happening. A brief takes the better part of a
+  // minute because composing twenty-odd cited claims is genuinely slow, and an SE watching an empty
+  // thread for that long assumes it broke.
+  onAppMention: (ctx, message) => {
+    if (!message.author || message.author.isBot) return null;
+    void startedTyping(ctx);
+    return { auth: defaultSlackAuth(message, ctx) };
+  },
 
-  onDirectMessage: (ctx, message) =>
-    message.author && !message.author.isBot ? { auth: defaultSlackAuth(message, ctx) } : null,
+  onDirectMessage: (ctx, message) => {
+    if (!message.author || message.author.isBot) return null;
+    void startedTyping(ctx);
+    return { auth: defaultSlackAuth(message, ctx) };
+  },
 
   events: {
     // The delivery path. The framework ships no default for action.result, so overriding it costs
