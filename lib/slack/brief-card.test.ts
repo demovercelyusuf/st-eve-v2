@@ -1,6 +1,6 @@
 import { cardToBlocks } from "eve/channels/slack";
 import { describe, expect, it } from "vitest";
-import { type BriefCardInput, briefCard, briefFallbackText, groundingFooter } from "./brief-card";
+import { type RenderableBrief, briefCard, briefFallbackText, groundingFooter } from "./brief-card";
 
 // Rendered through eve's real cardToBlocks rather than asserted against the card object, because the
 // failures that matter here happen at conversion: Slack rejects a message over 50 blocks or a section
@@ -11,7 +11,7 @@ import { type BriefCardInput, briefCard, briefFallbackText, groundingFooter } fr
 // resolved name, so the first real render produced "Weekly brief: undefined". It only showed up
 // because a genuine brief was rendered instead of a fixture someone wrote by hand.
 
-const base: BriefCardInput = {
+const base: RenderableBrief = {
   account: "Northwind Trading Co.",
   accountId: "ACC-2041",
   summary: "The expansion is gated on two failing exit criteria.",
@@ -20,7 +20,7 @@ const base: BriefCardInput = {
       priority: "high",
       text: "Give Northwind a build date for the CDC failover fix.",
       owner: "SE + Engineering",
-      citations: ["ZD-4462"],
+      citations: ["LIN-DEM-8"],
     },
   ],
   stageRead: {
@@ -31,11 +31,11 @@ const base: BriefCardInput = {
     signals: ["A failover drill lost 41,900 rows."],
   },
   needsReview: [],
-  citedIds: ["ZD-4462"],
+  citedIds: ["LIN-DEM-8"],
   grounding: { shippedClaims: 1, citedClaims: 1, droppedClaims: 0 },
 };
 
-function blocksOf(input: BriefCardInput) {
+function blocksOf(input: RenderableBrief) {
   return cardToBlocks(briefCard(input)) as Array<Record<string, unknown>>;
 }
 
@@ -86,13 +86,13 @@ describe("brief card", () => {
     const rendered = JSON.stringify(
       blocksOf({
         ...base,
-        nextSteps: [{ ...base.nextSteps[0], citations: ["LIN-VAN-412", "ZD-4462"] }],
+        nextSteps: [{ ...base.nextSteps[0], citations: ["LIN-VAN-412", "GONG-902"] }],
         sources: [{ citationId: "LIN-VAN-412", url: "https://linear.app/x/issue/VAN-412" }],
       }),
     );
     // Live sources become clickable; warehouse ids stay plain chips.
     expect(rendered).toContain("linear.app");
-    expect(rendered).toContain("ZD-4462");
+    expect(rendered).toContain("GONG-902");
   });
 
   it("escapes mrkdwn control characters from customer text", () => {

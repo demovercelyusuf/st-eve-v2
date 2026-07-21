@@ -9,7 +9,7 @@ export const CitedClaim = z.object({
   text: z.string().min(1).describe("one factual sentence for the brief"),
   citations: z
     .array(z.string())
-    .describe("activity ids that back this exact sentence, for example ['ZD-4471','GONG-902']"),
+    .describe("activity ids that back this exact sentence, for example ['GONG-902','LIN-DEM-8']"),
 });
 
 export const NextStep = z.object({

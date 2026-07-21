@@ -1,8 +1,8 @@
 "use client";
 
-import type { UserContent } from "ai";
-import { useEveAgent } from "eve/react";
+import Link from "next/link";
 import { AlertCircleIcon } from "lucide-react";
+import { useEffect } from "react";
 import {
   Conversation,
   ConversationContent,
@@ -16,39 +16,36 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { cn } from "@/lib/utils";
 import { AgentMessage } from "./agent-message";
+import { AgentStatusDot } from "./agent-status-dot";
+import { useCopilot } from "./copilot-provider";
+import { isSendable, toAgentMessage } from "./prompt-message";
 
-const AGENT_NAME = "Vantage Copilot";
+const AGENT_NAME = "Steve";
 
-type AgentStatus = ReturnType<typeof useEveAgent>["status"];
+const OPENERS = [
+  "Give me this week's brief for Northwind.",
+  "Is Northwind still blocked on the failover bug?",
+  "What engineering issues are open against Northwind?",
+  "Brief me on Atlas Manufacturing.",
+];
 
 export function AgentChat() {
-  const agent = useEveAgent();
+  // The session comes from the root layout rather than from a useEveAgent call here, so this page and
+  // the floating dock are one conversation. An SE who asks in the dock and then opens the full view
+  // is resizing a window, not starting again.
+  const { agent, markRead } = useCopilot();
   const isBusy = agent.status === "submitted" || agent.status === "streaming";
   const isEmpty = agent.data.messages.length === 0;
 
+  // This page is the transcript at full size, so nothing on it can be unread. Without this the dock's
+  // launcher would still be wearing an unread dot after the SE navigated away from here.
+  useEffect(() => {
+    markRead();
+  }, [agent.data.messages, markRead]);
+
   const handleSubmit = async (message: PromptInputMessage) => {
-    const text = message.text.trim();
-    if ((text.length === 0 && message.files.length === 0) || isBusy) return;
-
-    if (message.files.length === 0) {
-      await agent.send({ message: text });
-      return;
-    }
-
-    const parts: UserContent = [];
-    if (text.length > 0) {
-      parts.push({ text, type: "text" });
-    }
-    for (const file of message.files) {
-      parts.push({
-        data: file.url,
-        filename: file.filename,
-        mediaType: file.mediaType,
-        type: "file",
-      });
-    }
-
-    await agent.send({ message: parts });
+    if (!isSendable(message) || isBusy) return;
+    await agent.send({ message: toAgentMessage(message) });
   };
 
   const composer = (
@@ -60,14 +57,23 @@ export function AgentChat() {
 
   return (
     <main className="flex h-dvh flex-col overflow-hidden bg-background text-foreground">
-      {isEmpty ? null : (
-        <header className="flex h-14 shrink-0 items-center justify-center gap-3 pl-4 pr-2">
+      {/* The way out. This page takes the full viewport with no nav, so without a link back it is a
+          trap: a reviewer who opens the copilot first has to reach for the browser's back button to
+          find anything else. Shown even on the empty state for that reason. */}
+      <header className="flex h-14 shrink-0 items-center justify-between gap-3 pr-4 pl-4">
+        <Link
+          className="text-muted-foreground text-sm transition-colors hover:text-foreground"
+          href="/dashboard"
+        >
+          &larr; Your patch
+        </Link>
+        {isEmpty ? null : (
           <span className="flex min-w-0 items-center gap-2">
             <span className="truncate text-muted-foreground text-sm">{AGENT_NAME}</span>
-            <StatusDot status={agent.status} />
+            <AgentStatusDot status={agent.status} />
           </span>
-        </header>
-      )}
+        )}
+      </header>
 
       {agent.error ? (
         <div className="mx-auto w-full max-w-3xl shrink-0 px-4 pt-2 sm:px-6">
@@ -109,38 +115,31 @@ export function AgentChat() {
         )}
       >
         {isEmpty ? (
-          <div className="flex flex-col items-center gap-3 text-center">
+          <div className="flex flex-col items-center gap-5 text-center">
             <h1 className="font-medium text-5xl tracking-tighter">{AGENT_NAME}</h1>
+            <p className="text-muted-foreground text-sm">
+              Ask about any account on your patch. Every claim comes back with the record that backs
+              it.
+            </p>
+            {/* Canned openers, because a reviewer arriving cold has no idea what this account set
+                contains. Each one exercises a different path: the flagship brief, the fast model,
+                the live Linear read, and a refusal. */}
+            <div className="flex flex-wrap justify-center gap-2">
+              {OPENERS.map((opener) => (
+                <button
+                  className="rounded-full border border-border px-3 py-1.5 text-muted-foreground text-xs transition-colors hover:border-foreground/30 hover:text-foreground"
+                  key={opener}
+                  onClick={() => void agent.send({ message: opener })}
+                  type="button"
+                >
+                  {opener}
+                </button>
+              ))}
+            </div>
           </div>
         ) : null}
         <div className="w-full">{composer}</div>
       </div>
     </main>
-  );
-}
-
-function StatusDot({ status }: { readonly status: AgentStatus }) {
-  const isLive = status === "submitted" || status === "streaming";
-  const tone =
-    status === "error"
-      ? "bg-destructive"
-      : isLive
-        ? "bg-emerald-500"
-        : status === "ready"
-          ? "bg-muted-foreground"
-          : "bg-muted-foreground/50";
-
-  return (
-    <span className="relative flex size-1">
-      {isLive ? (
-        <span
-          className={cn(
-            "absolute inline-flex size-full animate-ping rounded-full opacity-75",
-            tone,
-          )}
-        />
-      ) : null}
-      <span className={cn("relative inline-flex size-1 rounded-full transition-colors", tone)} />
-    </span>
   );
 }

@@ -9,3 +9,8 @@ node_modules
 dist
 .DS_Store
 *.tsbuildinfo
+
+# Local agent tooling. skills-lock.json is kept as the record of which skills were used;
+# the vendored skill files themselves are not part of this project.
+.claude/
+.agents/

@@ -1,126 +1,174 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { RiskBadge } from "@/app/_components/badges";
+import { Suspense } from "react";
+import { AccountBriefSection } from "@/app/_components/account-brief-section";
+import { EvidenceTimeline } from "@/app/_components/evidence-timeline";
 import { Nav } from "@/app/_components/nav";
-import { getLatestBriefRun } from "@/lib/appstore/briefs";
+import { RiskBadge } from "@/app/_components/badges";
+import { getAccountEvidence } from "@/lib/account/timeline";
+import { getLatestBrief } from "@/lib/appstore/briefs";
 import { fmtArr } from "@/lib/format";
-import { getSalesforceAccount } from "@/lib/salesforce/adapter";
-import { getAccountActivity } from "@/lib/warehouse/repository";
+import { STAGE_PATH, isClosed, stagePosition } from "@/lib/salesforce/stages";
+import { getAccount } from "@/lib/warehouse/repository";
 
-export const dynamic = "force-dynamic";
-
-export default async function AccountPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const [sfdc, activity, lastRun] = await Promise.all([
-    getSalesforceAccount(id),
-    getAccountActivity(id),
-    getLatestBriefRun(id),
-  ]);
-  if (!sfdc) notFound();
-
-  const opp = sfdc.opportunities[0];
-  const timeline = [...activity].reverse();
-
+// params is request-time data, so awaiting it at the page top would block the prerender. The promise
+// is forwarded into the child and awaited there instead, which keeps the chrome and the back link in
+// the static shell while the account itself streams in behind Suspense.
+export default function AccountPage({ params }: { readonly params: Promise<{ id: string }> }) {
   return (
     <main className="min-h-dvh bg-background text-foreground">
       <Nav />
       <div className="mx-auto max-w-4xl px-6 py-8">
-        <Link href="/dashboard" className="text-muted-foreground text-sm hover:text-foreground">
+        <Link className="text-muted-foreground text-sm hover:text-foreground" href="/dashboard">
           ← Patch
         </Link>
-
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <h1 className="font-semibold text-2xl tracking-tight">{sfdc.name}</h1>
-          <RiskBadge risk={opp?.riskFlag ?? null} />
-        </div>
-        <p className="mt-1 text-muted-foreground text-sm">
-          {sfdc.industry ?? "Account"} · owned by {sfdc.ownerSe ?? "unassigned"}
-        </p>
-
-        {opp ? (
-          <section className="mt-6 rounded-xl border border-border bg-card p-5">
-            <div className="font-medium">{opp.name}</div>
-            <div className="mt-1 text-muted-foreground text-sm">
-              {opp.stage} · {fmtArr(opp.amount ?? 0)}
-              {opp.closeDate ? ` · close ${opp.closeDate}` : ""}
-            </div>
-            <div className="mt-3 text-sm">
-              <span className="text-muted-foreground">Next step: </span>
-              {opp.nextStep ?? <span className="text-amber-700 dark:text-amber-400">none set</span>}
-            </div>
-          </section>
-        ) : null}
-
-        <section className="mt-4 rounded-xl border border-border bg-card p-5">
-          <h2 className="font-medium text-sm">Contacts</h2>
-          <ul className="mt-3 flex flex-col gap-2">
-            {sfdc.contacts.map((c) => (
-              <li className="flex items-center justify-between gap-3 text-sm" key={c.contactId}>
-                <span className="min-w-0 truncate">
-                  <span className="font-medium">{c.name}</span>
-                  <span className="text-muted-foreground"> · {c.title}</span>
-                </span>
-                <span className="flex shrink-0 items-center gap-2 text-xs">
-                  {c.role ? (
-                    <span className="rounded-full border border-border px-2 py-0.5">
-                      {c.role.replace(/_/g, " ")}
-                    </span>
-                  ) : null}
-                  {c.active ? null : (
-                    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-amber-700 dark:text-amber-400">
-                      departed
-                    </span>
-                  )}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section className="mt-4 rounded-xl border border-border bg-card p-5">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="font-medium text-sm">Latest brief</h2>
-            <Link
-              href="/chat"
-              className="rounded-md bg-primary px-3 py-1.5 font-medium text-primary-foreground text-xs"
-            >
-              Generate a brief
-            </Link>
-          </div>
-          {lastRun ? (
-            <p className="mt-3 text-muted-foreground text-sm">
-              Last run {String(lastRun.createdAt).slice(0, 10)}: {lastRun.groundedClaims ?? 0} claims
-              shipped, {lastRun.droppedClaims ?? 0} withheld by the grounding gate.
-            </p>
-          ) : (
-            <p className="mt-3 text-muted-foreground text-sm">
-              No brief run yet. Open the copilot to generate one.
-            </p>
-          )}
-        </section>
-
-        <section className="mt-6">
-          <h2 className="font-medium text-sm">Activity ({activity.length})</h2>
-          <ol className="mt-3 flex flex-col gap-2">
-            {timeline.map((a) => (
-              <li className="rounded-lg border border-border bg-card px-4 py-3" key={a.activityId}>
-                <div className="flex items-start justify-between gap-3">
-                  <span className="flex min-w-0 items-baseline gap-2 text-sm">
-                    <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-muted-foreground text-xs">
-                      {a.activityId}
-                    </span>
-                    <span className="font-medium">{a.summary}</span>
-                  </span>
-                  <span className="shrink-0 text-muted-foreground text-xs tabular-nums">
-                    {a.occurredAt}
-                  </span>
-                </div>
-                {a.detail ? <p className="mt-1.5 text-muted-foreground text-sm">{a.detail}</p> : null}
-              </li>
-            ))}
-          </ol>
-        </section>
+        <Suspense fallback={<AccountSkeleton />}>
+          <AccountDetail params={params} />
+        </Suspense>
       </div>
     </main>
+  );
+}
+
+// The tab, because an SE opens four of these at once while writing one brief and "Steve" four times
+// over is not navigable. The root layout already supplies the "%s · Steve" template, so this returns
+// the name alone.
+//
+// Wrapped rather than left to throw: metadata failing is a 500 on a page whose body would have
+// rendered fine, and a generic tab title is a much smaller loss than the account.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  try {
+    const account = await getAccount(id);
+    return account ? { title: account.name } : {};
+  } catch {
+    return {};
+  }
+}
+
+// Sized to the real thing rather than a spinner, so the shell does not reflow when the data lands.
+function AccountSkeleton() {
+  return (
+    <div className="mt-3 space-y-6">
+      <div className="h-8 w-64 animate-pulse rounded bg-card" />
+      <div className="h-32 animate-pulse rounded-xl border border-border bg-card" />
+      <div className="h-64 animate-pulse rounded-xl border border-border bg-card" />
+    </div>
+  );
+}
+
+// The path to a technical win, left to right. Read-only, because Steve reads and never writes: the
+// stage belongs to Salesforce, and a control here that appeared to change it would be a write this
+// product does not make. An unrecognised stage shows on its own rather than claiming a position it
+// does not have.
+function StageTracker({ stage }: { readonly stage: string | null }) {
+  const current = stagePosition(stage);
+  if (stage && current === -1) {
+    return (
+      <span className="rounded-full bg-primary px-3 py-1 font-medium text-primary-foreground text-xs">
+        {stage}
+      </span>
+    );
+  }
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {STAGE_PATH.map((s, i) => (
+        <span
+          aria-current={i === current ? "step" : undefined}
+          className={`rounded-full px-2.5 py-1 text-xs ${
+            i === current
+              ? "bg-primary font-medium text-primary-foreground"
+              : i < current
+                ? "bg-muted text-foreground"
+                : "text-muted-foreground"
+          }`}
+          key={s}
+        >
+          {i < current ? `✓ ${s}` : s}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+async function AccountDetail({ params }: { readonly params: Promise<{ id: string }> }) {
+  const { id } = await params;
+
+  // Settled rather than awaited together. The evidence read already degrades per source inside
+  // lib/account/timeline.ts; this outer settle covers the app-store, which is a different database
+  // entirely. An SE who came to read the records should get them even when the run store is down.
+  const [evidenceResult, briefResult] = await Promise.allSettled([
+    getAccountEvidence(id),
+    getLatestBrief(id),
+  ]);
+
+  if (evidenceResult.status === "rejected") throw evidenceResult.reason;
+  const evidence = evidenceResult.value;
+  if (!evidence) notFound();
+
+  const { account, linearConnected, opportunity, rows, sources } = evidence;
+  const latest = briefResult.status === "fulfilled" ? briefResult.value : "unavailable";
+
+  return (
+    <>
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <h1 className="font-semibold text-2xl tracking-tight">{account.name}</h1>
+        <RiskBadge risk={opportunity?.riskFlag ?? null} />
+      </div>
+      <p className="mt-1 text-muted-foreground text-sm">
+        {account.industry}
+        {account.segment ? ` · ${account.segment}` : ""} · {fmtArr(account.arr)} · owned by{" "}
+        {account.seOwner}
+      </p>
+
+      {opportunity ? (
+        <section className="mt-6 rounded-xl border border-border bg-card p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="font-medium">{opportunity.name}</div>
+              <div className="mt-1 text-muted-foreground text-sm">
+                <span className="font-mono text-xs">{opportunity.oppId}</span> ·{" "}
+                {fmtArr(opportunity.amount ?? 0)}
+                {opportunity.closeDate ? ` · close ${opportunity.closeDate}` : ""}
+              </div>
+            </div>
+            <a
+              // The header is a summary of a record that also has a row below, so it links to that row
+              // rather than repeating its detail. One id, one place it resolves.
+              className="shrink-0 text-muted-foreground text-xs underline decoration-dotted underline-offset-2 hover:text-foreground"
+              href={`#${opportunity.oppId}`}
+            >
+              See the record
+            </a>
+          </div>
+          <div className="mt-4">
+            <StageTracker stage={opportunity.stage} />
+          </div>
+          <div className="mt-4 text-sm">
+            <span className="text-muted-foreground">Next step: </span>
+            {opportunity.nextStep ?? (
+              <span className="text-amber-700 dark:text-amber-400">
+                {isClosed(opportunity.stage) ? "none, the deal is closed" : "none set"}
+              </span>
+            )}
+          </div>
+        </section>
+      ) : (
+        <section className="mt-6 rounded-xl border border-border border-dashed p-5">
+          <p className="text-muted-foreground text-sm">
+            No open opportunity is linked to this account in Salesforce.
+          </p>
+        </section>
+      )}
+
+      <AccountBriefSection accountId={account.accountId} latest={latest} />
+
+      <EvidenceTimeline linearConnected={linearConnected} rows={rows} sources={sources} />
+    </>
   );
 }

@@ -15,6 +15,13 @@
       "when": 1784593288321,
       "tag": "0001_cooing_wild_pack",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784605935922,
+      "tag": "0002_brief_payload",
+      "breakpoints": true
     }
   ]
 }

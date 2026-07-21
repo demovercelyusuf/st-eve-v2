@@ -5,7 +5,7 @@ import { CITATION_SOURCES, describeUnresolved, sourceFor } from "./registry";
 
 describe("citation registry", () => {
   it("attributes an id to its source", () => {
-    expect(sourceFor("ZD-4471")?.kind).toBe("ticket");
+    expect(sourceFor("USG-2207")?.kind).toBe("usage");
     expect(sourceFor("GONG-902")?.kind).toBe("call");
     expect(sourceFor("LIN-VAN-412")?.kind).toBe("linear");
     expect(sourceFor("OPP-2041-P")?.kind).toBe("opportunity");
@@ -44,7 +44,7 @@ describe("the gate, wired to the registry", () => {
   const brief: BriefInput = {
     account: "Northwind",
     summary: [
-      { text: "The failover drill lost rows.", citations: ["ZD-4462"] },
+      { text: "The soak test aborted at hour 42.", citations: ["GONG-902"] },
       { text: "They are evaluating a competitor.", citations: ["LIN-VAN-999"] },
     ],
     nextSteps: [],
@@ -58,21 +58,21 @@ describe("the gate, wired to the registry", () => {
   };
 
   it("drops the unbacked claim and explains why in the registry's words", () => {
-    const result = enforceCitations(brief, new Set(["ZD-4462"]), describeUnresolved);
+    const result = enforceCitations(brief, new Set(["GONG-902"]), describeUnresolved);
     expect(result.grounding.shippedClaims).toBe(1);
     expect(result.needsReview).toHaveLength(1);
     expect(result.needsReview[0].reason).toContain("Linear");
-    expect(result.summary).toBe("The failover drill lost rows.");
+    expect(result.summary).toBe("The soak test aborted at hour 42.");
   });
 
   it("reports the ids that survived", () => {
-    const result = enforceCitations(brief, new Set(["ZD-4462"]), describeUnresolved);
-    expect(result.citedIds).toEqual(["ZD-4462"]);
+    const result = enforceCitations(brief, new Set(["GONG-902"]), describeUnresolved);
+    expect(result.citedIds).toEqual(["GONG-902"]);
   });
 
   it("still works without the registry", () => {
     // The default keeps the gate usable on its own, which is what makes it portable.
-    const result = enforceCitations(brief, new Set(["ZD-4462"]));
+    const result = enforceCitations(brief, new Set(["GONG-902"]));
     expect(result.needsReview[0].reason).toContain("LIN-VAN-999");
   });
 });

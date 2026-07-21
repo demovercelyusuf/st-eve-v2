@@ -4,9 +4,9 @@ import { enforceCitations } from "./gate";
 
 // The activity and Salesforce ids that exist for the account under test.
 const KNOWN = new Set([
-  "ZD-4471",
-  "ZD-4488",
-  "ZD-4519",
+  "LIN-DEM-8",
+  "LIN-DEM-9",
+  "LIN-DEM-10",
   "GONG-882",
   "GONG-911",
   "GONG-925",
@@ -59,7 +59,7 @@ describe("the grounding gate", () => {
     const result = enforceCitations(
       briefWith({
         nextSteps: [
-          { priority: "high", text: "Investigate the data-loss P1.", owner: "Support", citations: ["ZD-4540"] },
+          { priority: "high", text: "Investigate the data-loss P1.", owner: "Support", citations: ["LIN-DEM-99"] },
         ],
       }),
       KNOWN,
@@ -100,13 +100,13 @@ describe("the grounding gate", () => {
       briefWith({
         summary: [
           claim("Seats fell from 238 to 96 against a contracted 250.", ["USG-2208"]),
-          claim("Support spiked to three P1 tickets with two SLA breaches.", ["ZD-4471", "ZD-4488", "ZD-4519"]),
+          claim("Support spiked to three P1 tickets with two SLA breaches.", ["LIN-DEM-8", "LIN-DEM-9", "LIN-DEM-10"]),
           claim("The champion has left Northwind.", ["GONG-925"]),
           claim("Northwind has selected Databricks as its replacement.", []),
         ],
         nextSteps: [
-          { priority: "high", text: "Deliver the overdue RCA.", owner: "SE + Support", citations: ["GONG-882", "ZD-4519"] },
-          { priority: "high", text: "Investigate the new data-loss P1.", owner: "Support", citations: ["ZD-4540"] },
+          { priority: "high", text: "Deliver the overdue RCA.", owner: "SE + Support", citations: ["GONG-882", "LIN-DEM-10"] },
+          { priority: "high", text: "Investigate the new data-loss P1.", owner: "Support", citations: ["LIN-DEM-99"] },
         ],
         stageRead: {
           salesforceStage: "Negotiation/Review",

@@ -27,14 +27,16 @@ export type SalesforceOpportunity = {
   riskFlag: "At Risk" | "Commit" | null;
 };
 
+// A support ticket as it is raised. It has no id of its own: these are the input
+// scripts/seed-linear.ts creates Linear issues from, and the identifier that resolves is the one
+// Linear assigns at creation. Carrying a second id here meant one thing had two names, and the older
+// name outlived the system that minted it.
 export type Ticket = {
-  ticketId: string;
   createdAt: string;
   subject: string;
   priority: "P1" | "P2" | "P3";
   status: "resolved" | "open" | "escalated";
   slaBreached: boolean;
-  csat: number | null;
   body: string;
 };
 

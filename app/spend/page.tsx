@@ -1,17 +1,19 @@
+import { Suspense } from "react";
+import { Nav } from "@/app/_components/nav";
 import { getRunCosts } from "@/lib/appstore/spend";
 
-export const dynamic = "force-dynamic";
+export const metadata = { title: "Per-run spend" };
 
 function money(n: number): string {
   return `$${n.toFixed(4)}`;
 }
 
-export default async function SpendPage() {
-  const runs = await getRunCosts(25);
-  const total = runs.reduce((sum, r) => sum + r.costUsd, 0);
-
+// Static shell, streamed figures. The run costs come from the app-store, which is a second database
+// behind the same boundary, so the heading and the caveat about what this number is do not wait on it.
+export default function SpendPage() {
   return (
     <main className="min-h-dvh bg-background text-foreground">
+      <Nav active="spend" />
       <div className="mx-auto max-w-5xl px-6 py-10">
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -21,6 +23,26 @@ export default async function SpendPage() {
               attribution, not an invoice.
             </p>
           </div>
+        </header>
+        <Suspense
+          fallback={
+            <div className="mt-8 h-64 animate-pulse rounded-lg border border-border bg-card" />
+          }
+        >
+          <SpendTable />
+        </Suspense>
+      </div>
+    </main>
+  );
+}
+
+async function SpendTable() {
+  const runs = await getRunCosts(25);
+  const total = runs.reduce((sum, r) => sum + r.costUsd, 0);
+
+  return (
+    <>
+        <header className="flex justify-end">
           <div className="rounded-lg border border-border bg-card px-4 py-3 text-right">
             <div className="text-muted-foreground text-xs uppercase tracking-wide">
               Total, last {runs.length} runs
@@ -71,7 +93,7 @@ export default async function SpendPage() {
             </tbody>
           </table>
         </div>
-      </div>
-    </main>
+    </>
   );
 }
+

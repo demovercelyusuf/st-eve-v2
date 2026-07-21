@@ -21,19 +21,6 @@ create table activity.dim_account (
   slack_channel text
 );
 
--- Zendesk-shaped support tickets. ticket_id is the citable activity id (ZD-####).
-create table activity.zendesk_tickets (
-  ticket_id    text primary key,
-  account_id   text not null references activity.dim_account(account_id),
-  created_at   date not null,
-  subject      text not null,
-  priority     text not null,          -- P1 | P2 | P3
-  status       text not null,          -- resolved | open | escalated
-  sla_breached boolean not null default false,
-  csat         real,
-  body         text
-);
-
 -- Gong-shaped call notes. call_id is the citable activity id (GONG-###).
 create table activity.gong_calls (
   call_id             text primary key,
@@ -60,12 +47,8 @@ create table activity.product_usage (
 -- The account-activity mart: one citable row per activity, unioned into a single timeline.
 -- Modeled as a view so the source tables stay the single source of truth (dbt would build this).
 create view activity.fct_account_activity as
-    select ticket_id  as activity_id, account_id, 'ticket'::text as activity_type,
-           created_at as occurred_at, subject as summary, body as detail
-      from activity.zendesk_tickets
-  union all
-    select call_id, account_id, 'call'::text,
-           call_date, title, transcript
+    select call_id as activity_id, account_id, 'call'::text as activity_type,
+           call_date as occurred_at, title as summary, transcript as detail
       from activity.gong_calls
   union all
     select usage_id, account_id, 'usage'::text,
