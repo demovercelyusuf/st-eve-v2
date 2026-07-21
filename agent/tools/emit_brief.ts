@@ -71,6 +71,17 @@ export default defineTool({
       persisted = false;
     }
 
-    return { shipped: true, accountId, persisted, sources, ...result };
+    // The resolved name travels with the brief. The gate returns everything except account and
+    // accountId, because it works on claims and knows nothing about accounts, so without this the
+    // Slack card renders a title reading "Weekly brief: undefined". Found by rendering a real brief
+    // rather than a fixture, which is the argument for doing that.
+    return {
+      shipped: true,
+      account: resolved.account.name,
+      accountId,
+      persisted,
+      sources,
+      ...result,
+    };
   },
 });
