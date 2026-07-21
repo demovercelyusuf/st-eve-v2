@@ -19,6 +19,21 @@ import { LinearUnauthorized, fetchAccountIssues, linearCitationId } from "../../
 
 const LINEAR_CONNECTOR = "linear/byzantine-pebble";
 
+// App-scoped, not user-scoped, and that choice is what makes Linear work at all here.
+//
+// connect(connector) defaults to a user subject, which needs each person to complete a device-code
+// handshake before their first read. Notion has no alternative to that, which is why it is parked.
+// Linear's connector carries app scopes as well, and the app is already installed in the workspace,
+// so an app token needs no per-person grant and every SE sees the same account issues.
+//
+// The tradeoff, stated rather than hidden: an app token sees every issue the installation can, not
+// only what the asking SE could. For issues labelled by account in a shared team that is the same
+// set. It would not be for a workspace with private teams, and the honest fix there is the user
+// subject plus the handshake, not a filter we apply after the fact.
+function linearAuth() {
+  return connect({ connector: LINEAR_CONNECTOR, principalType: "app" });
+}
+
 export default defineTool({
   description:
     "Read the engineering issues raised against an account in Linear: blockers, defects and feature asks from a pilot or evaluation, each with a citable id (for example LIN-VAN-412). Accepts an account name or id. Use these ids as citations for any claim about engineering work or a technical blocker.",
@@ -68,7 +83,7 @@ export default defineTool({
 
     let token: string;
     try {
-      ({ token } = await ctx.getToken(connect(LINEAR_CONNECTOR)));
+      ({ token } = await ctx.getToken(linearAuth()));
     } catch {
       return notConnected;
     }
