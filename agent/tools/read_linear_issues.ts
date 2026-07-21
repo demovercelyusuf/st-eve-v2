@@ -43,23 +43,41 @@ export default defineTool({
     // otherwise make.
     const label = accountId;
 
-    // requireAuth parks the turn and asks the user to authorize rather than failing, so the first run
-    // against a workspace nobody has granted yet ends in a sign-in prompt instead of an error. It
-    // returns never, and returning it says so to the type checker as well as the reader.
+    // Deliberately NOT ctx.requireAuth here, and this was learned the hard way. requireAuth parks the
+    // whole turn waiting for a grant, so on a workspace nobody has authorized yet the agent stopped
+    // after reading the warehouse and Salesforce and never reached emit_brief. No brief at all,
+    // because one enrichment source was not connected.
+    //
+    // Linear is not on the critical path. The brief stands on warehouse activity and the CRM record;
+    // engineering issues make it richer, not true. So a missing grant is reported as a fact about
+    // coverage and the run continues, which is also the more honest output: say what was read, and
+    // say what could not be checked.
+    //
+    // requireAuth is still the right call for a tool whose entire purpose is the connected system.
+    // This one has somewhere to fall back to.
+    const notConnected = {
+      found: false,
+      accountId,
+      account: name,
+      connected: false,
+      count: 0,
+      issues: [],
+      message:
+        "Linear is not connected for this user, so engineering issues were not read. Continue the brief without them and note that Linear was not consulted.",
+    };
+
     let token: string;
     try {
       ({ token } = await ctx.getToken(connect(LINEAR_CONNECTOR)));
     } catch {
-      return ctx.requireAuth(connect(LINEAR_CONNECTOR));
+      return notConnected;
     }
 
     let issues;
     try {
       issues = await fetchAccountIssues(token, label);
     } catch (error) {
-      // A rejected token is fixable by the person asking; anything else is not, so only the first
-      // becomes a prompt and the rest surface as failures.
-      if (error instanceof LinearUnauthorized) return ctx.requireAuth(connect(LINEAR_CONNECTOR));
+      if (error instanceof LinearUnauthorized) return notConnected;
       throw error;
     }
 
