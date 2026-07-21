@@ -74,7 +74,11 @@ export function BriefActions({ brief }: { readonly brief: RenderableBrief }) {
       <p aria-live="polite" className="min-w-0 text-muted-foreground text-xs">
         {state.kind === "posted" ? (
           <span className="text-emerald-700 dark:text-emerald-400">
-            Posted to #{state.channel}.
+            {/* When the channel is configured by id there is no name to show, and "Posted to
+                #C0BHFT28R2Q" reads like something leaked. */}
+            {/^[CGD][A-Z0-9]{6,}$/.test(state.channel)
+              ? "Posted to Slack."
+              : `Posted to #${state.channel}.`}
           </span>
         ) : state.kind === "failed" ? (
           <span className="text-destructive">{state.reason}</span>
