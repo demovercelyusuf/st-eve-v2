@@ -8,16 +8,21 @@ import { FloatingMascot, Rise } from "@/app/_components/motion";
 // better medium for it than a page nobody scrolls to the bottom of. What is left has one job, which
 // is to say what this is and get you inside.
 //
-// One viewport, deliberately, with overflow hidden rather than a tall page that happens to fit on a
-// laptop. The constraint is the design: the moment something is allowed below a fold, that space
-// starts collecting paragraphs again.
+// One viewport, deliberately. The constraint is the design: the moment something is allowed below a
+// fold, that space starts collecting paragraphs again.
+//
+// min-h-dvh rather than h-dvh with overflow hidden, and the difference matters in exactly one place.
+// Measured, the content needs 566px of height with the mascot and 438px without it, so on every
+// realistic viewport there is nothing to scroll and the page reads as a single screen. A landscape
+// phone has around 330px, and clipping is the wrong failure there: it would hide the only button on
+// the page. This degrades to a short scroll instead, which nobody will see and nobody is stuck in.
 //
 // It reads no data and ships as static HTML, and its entire motion budget is CSS, so there is no
 // client bundle on the critical path. That is most of why this route can hold a perfect performance
 // score, and it is worth defending as the page a reviewer loads first.
 export default function Page() {
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-background text-foreground">
+    <div className="flex min-h-dvh flex-col bg-background text-foreground">
       {/* The landing owns its own chrome rather than borrowing the workspace shell, so it reads as a
           product page and not as somewhere you are already signed in. */}
       <header className="flex shrink-0 items-center justify-between px-6 py-5">
@@ -72,7 +77,7 @@ export default function Page() {
         {/* Held back on short viewports rather than allowed to push the call to action off screen. A
             landscape phone has room for the sentence or the mascot, and the sentence is the one
             doing the work. */}
-        <div className="mt-8 hidden [@media(min-height:720px)]:block">
+        <div className="mt-8 hidden [@media(min-height:700px)]:block">
           <FloatingMascot size={104} />
         </div>
       </main>
