@@ -1,10 +1,11 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { RiskBadge } from "@/app/_components/badges";
 import { Nav } from "@/app/_components/nav";
 import { getPatchOverview, type PatchRow } from "@/lib/dashboard/patch";
 import { fmtArr } from "@/lib/format";
 
-export const dynamic = "force-dynamic";
+export const metadata = { title: "Stages" };
 
 // The stage board: opportunities grouped by their Salesforce stage, in pipeline order. The copilot's
 // grounded read can disagree with the labeled stage (an account can sit in Negotiation while every
@@ -18,7 +19,38 @@ const STAGE_ORDER = [
   "Closed Lost",
 ];
 
-export default async function BoardPage() {
+// Static shell, streamed columns. Same reasoning as the patch view: the stage query crosses into RDS,
+// so the chrome and the explanation of what the risk badges mean arrive without waiting on it.
+export default function BoardPage() {
+  return (
+    <main className="min-h-dvh bg-background text-foreground">
+      <Nav active="board" />
+      <div className="mx-auto max-w-6xl px-6 py-8">
+        <h1 className="font-semibold text-2xl tracking-tight">Stage board</h1>
+        <p className="mt-1 text-muted-foreground text-sm">
+          Opportunities by Salesforce stage. Risk badges are the copilot's grounded read, which can
+          differ from the labeled stage.
+        </p>
+
+        <Suspense fallback={<BoardSkeleton />}>
+          <StageColumns />
+        </Suspense>
+      </div>
+    </main>
+  );
+}
+
+function BoardSkeleton() {
+  return (
+    <div className="mt-6 flex gap-4 overflow-hidden">
+      {[0, 1, 2, 3].map((i) => (
+        <div className="h-64 w-72 shrink-0 animate-pulse rounded-lg border border-border bg-card" key={i} />
+      ))}
+    </div>
+  );
+}
+
+async function StageColumns() {
   const patch = await getPatchOverview();
   const columns = new Map<string, PatchRow[]>();
   for (const stage of STAGE_ORDER) columns.set(stage, []);
@@ -32,16 +64,7 @@ export default async function BoardPage() {
   const stages = [...columns.entries()].filter(([, rows]) => rows.length > 0);
 
   return (
-    <main className="min-h-dvh bg-background text-foreground">
-      <Nav active="board" />
-      <div className="mx-auto max-w-6xl px-6 py-8">
-        <h1 className="font-semibold text-2xl tracking-tight">Stage board</h1>
-        <p className="mt-1 text-muted-foreground text-sm">
-          Opportunities by Salesforce stage. Risk badges are the copilot's grounded read, which can
-          differ from the labeled stage.
-        </p>
-
-        <div className="mt-6 overflow-x-auto">
+    <div className="mt-6 overflow-x-auto">
           <div className="flex min-w-max gap-4 pb-2">
             {stages.map(([stage, rows]) => (
               <div className="w-72 shrink-0" key={stage}>
@@ -74,9 +97,7 @@ export default async function BoardPage() {
                 </div>
               </div>
             ))}
-          </div>
-        </div>
       </div>
-    </main>
+    </div>
   );
 }

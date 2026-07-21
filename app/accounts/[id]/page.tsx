@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { RiskBadge } from "@/app/_components/badges";
 import { Nav } from "@/app/_components/nav";
 import { getLatestBriefRun } from "@/lib/appstore/briefs";
@@ -7,9 +8,36 @@ import { fmtArr } from "@/lib/format";
 import { getSalesforceAccount } from "@/lib/salesforce/adapter";
 import { getAccountActivity } from "@/lib/warehouse/repository";
 
-export const dynamic = "force-dynamic";
+// params is request-time data, so awaiting it at the page top would block the prerender. The promise
+// is forwarded into the child and awaited there instead, which keeps the chrome and the back link in
+// the static shell while the account itself streams in behind Suspense.
+export default function AccountPage({ params }: { params: Promise<{ id: string }> }) {
+  return (
+    <main className="min-h-dvh bg-background text-foreground">
+      <Nav />
+      <div className="mx-auto max-w-4xl px-6 py-8">
+        <Link className="text-muted-foreground text-sm hover:text-foreground" href="/dashboard">
+          ← Patch
+        </Link>
+        <Suspense fallback={<AccountSkeleton />}>
+          <AccountDetail params={params} />
+        </Suspense>
+      </div>
+    </main>
+  );
+}
 
-export default async function AccountPage({ params }: { params: Promise<{ id: string }> }) {
+function AccountSkeleton() {
+  return (
+    <div className="mt-3 space-y-6">
+      <div className="h-8 w-64 animate-pulse rounded bg-card" />
+      <div className="h-32 animate-pulse rounded-xl border border-border bg-card" />
+      <div className="h-64 animate-pulse rounded-xl border border-border bg-card" />
+    </div>
+  );
+}
+
+async function AccountDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const [sfdc, activity, lastRun] = await Promise.all([
     getSalesforceAccount(id),
@@ -22,13 +50,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
   const timeline = [...activity].reverse();
 
   return (
-    <main className="min-h-dvh bg-background text-foreground">
-      <Nav />
-      <div className="mx-auto max-w-4xl px-6 py-8">
-        <Link href="/dashboard" className="text-muted-foreground text-sm hover:text-foreground">
-          ← Patch
-        </Link>
-
+    <>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <h1 className="font-semibold text-2xl tracking-tight">{sfdc.name}</h1>
           <RiskBadge risk={opp?.riskFlag ?? null} />
@@ -120,7 +142,6 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
             ))}
           </ol>
         </section>
-      </div>
-    </main>
+    </>
   );
 }
