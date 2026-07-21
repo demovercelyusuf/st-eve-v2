@@ -2,6 +2,10 @@
 # scripts unless they are named here, and then fails the install outright rather than warning, so an
 # unanswered entry is a broken build rather than a slow one. This file was committed with its
 # placeholder text still in place, which is what took production down.
+#
+# core-js is false rather than true: it arrives under posthog-js, and its postinstall prints a
+# funding notice. Nothing is compiled and nothing needs it to run.
 allowBuilds:
+  core-js: false
   esbuild: true
   sharp: true

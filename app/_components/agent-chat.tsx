@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { track } from "@/lib/analytics";
 import { AlertCircleIcon } from "lucide-react";
 import { useEffect } from "react";
 import {
@@ -47,6 +48,9 @@ export function AgentChat() {
 
   const handleSubmit = async (message: PromptInputMessage) => {
     if (!isSendable(message) || isBusy) return;
+    // The question itself is deliberately not sent. What is worth knowing is that someone asked one
+    // and from where; the text is the customer's, and an analytics tool is the wrong place for it.
+    track("question_asked", { surface: "chat" });
     await agent.send({ message: toAgentMessage(message) });
   };
 

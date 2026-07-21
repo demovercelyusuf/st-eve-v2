@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { track } from "@/lib/analytics";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -114,6 +115,9 @@ export function CopilotDock() {
     if (!isSendable(message) || isBusy(agent.status)) {
       return;
     }
+    // Same event as the full page, different surface. Whether people use the dock or go to /chat is
+    // the thing this answers, and it only answers it if both send the same name.
+    track("question_asked", { surface: "dock" });
     await agent.send({ message: toAgentMessage(message) });
   };
 

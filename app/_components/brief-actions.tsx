@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { track } from "@/lib/analytics";
 import type { RenderableBrief } from "@/lib/brief/render";
 import { BrandIcon } from "./brand-icon";
 
@@ -35,8 +36,12 @@ export function BriefActions({ brief }: { readonly brief: RenderableBrief }) {
         | { ok: true; channel: string }
         | { ok: false; reason: string };
       setState(json.ok ? { kind: "posted", channel: json.channel } : { kind: "failed", reason: json.reason });
+      // Both outcomes, not just the happy one. "How often does posting fail" is the question worth
+      // being able to answer, and only recording successes makes it unanswerable.
+      track("brief_posted_to_slack", { accountId: brief.accountId, ok: json.ok });
     } catch (error) {
       setState({ kind: "failed", reason: error instanceof Error ? error.message : String(error) });
+      track("brief_posted_to_slack", { accountId: brief.accountId, ok: false });
     }
   }
 

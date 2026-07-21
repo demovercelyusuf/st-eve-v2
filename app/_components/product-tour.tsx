@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { track } from "@/lib/analytics";
 import { createPortal } from "react-dom";
 
 // A self-guided coach-mark tour. It spotlights part of the app, explains it, and lets you click
@@ -106,18 +107,40 @@ export function ProductTour({ steps = APP_TOUR }: { steps?: readonly TourStep[] 
   const [index, setIndex] = useState(0);
   const [rect, setRect] = useState<DOMRect | null>(null);
   const [cardHeight, setCardHeight] = useState(210);
+
+  // The viewport, in state rather than read from window during render.
+  //
+  // Two of the steps have no target and are positioned purely from viewport size. Reading window
+  // at render time means those numbers are only correct if something else happens to re-render,
+  // and the resize handler for a targetless step was setRect(prev => prev === null ? prev : null) —
+  // which returns the identical value, so React bails out and never schedules one. Rotating a phone
+  // left the card laid out for the old orientation: measured 390x844 to 844x390, the whole
+  // Back/Skip/Done row ended up below the fold.
+  const [viewport, setViewport] = useState({ h: 0, w: 0 });
   const cardRef = useRef<HTMLDivElement | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
+
+  // Mirrors index so close() can report the step it happened on without reading state inside a
+  // state updater.
+  const indexRef = useRef(0);
+  indexRef.current = index;
 
   const step = steps[index];
 
   const start = useCallback(() => {
     returnFocusRef.current = document.activeElement as HTMLElement | null;
+    track("tour_started");
     setIndex(0);
     setActive(true);
   }, []);
 
   const close = useCallback(() => {
+    // Which step people leave on is the useful number here — a tour everyone abandons at step two is
+    // a tour with a problem at step two, and "started" alone cannot tell you that.
+    //
+    // Read from a ref rather than from inside a setIndex updater. An updater has to be pure: React
+    // is free to call it twice, and in development it does, which would report every exit twice.
+    track("tour_closed", { step: indexRef.current + 1 });
     setActive(false);
     try {
       localStorage.setItem(SEEN_KEY, "1");
@@ -229,12 +252,19 @@ export function ProductTour({ steps = APP_TOUR }: { steps?: readonly TourStep[] 
   // Track the target while the user scrolls or resizes. Deliberately no auto-scroll here.
   useEffect(() => {
     if (!active) return;
-    const onMove = () => measure();
+    const onMove = () => {
+      // Unconditionally, so a targetless step still re-renders when the window changes shape.
+      setViewport({ h: window.innerHeight, w: window.innerWidth });
+      measure();
+    };
+    onMove();
     window.addEventListener("scroll", onMove, true);
     window.addEventListener("resize", onMove);
+    window.addEventListener("orientationchange", onMove);
     return () => {
       window.removeEventListener("scroll", onMove, true);
       window.removeEventListener("resize", onMove);
+      window.removeEventListener("orientationchange", onMove);
     };
   }, [active, measure]);
 
@@ -251,11 +281,13 @@ export function ProductTour({ steps = APP_TOUR }: { steps?: readonly TourStep[] 
 
   // Measured rather than assumed. A hardcoded card height is fine until a step has two more lines
   // of copy than the others and the card hangs off the bottom of the screen.
+  // index is in the deps because each step has its own amount of copy, so the card's height changes
+  // as you move through it. Measuring only on activation sized every step like the first one.
   useLayoutEffect(() => {
     if (!active || !cardRef.current) return;
     const h = cardRef.current.getBoundingClientRect().height;
     setCardHeight((prev) => (Math.abs(prev - h) < 2 ? prev : h));
-  }, [active]);
+  }, [active, index]);
 
   useEffect(() => {
     if (active) cardRef.current?.focus();
@@ -263,8 +295,9 @@ export function ProductTour({ steps = APP_TOUR }: { steps?: readonly TourStep[] 
 
   if (!active || !step) return null;
 
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
+  // Falls back to window on the very first render, before the effect above has run once.
+  const vw = viewport.w || window.innerWidth;
+  const vh = viewport.h || window.innerHeight;
   const cardW = Math.min(CARD_WIDTH, vw - 28);
   const pad = 8;
 
