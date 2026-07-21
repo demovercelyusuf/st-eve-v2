@@ -5,7 +5,7 @@ The vercelian copilot for the technical win.
 [![CI](https://github.com/demovercelyusuf/st-eve-v2/actions/workflows/ci.yml/badge.svg)](https://github.com/demovercelyusuf/st-eve-v2/actions/workflows/ci.yml)
 
 Full visibility into the technical progress of every account your team is responsible for. Steve reads
-the systems an org already runs on, modern or legacy, connected or not, and hands the account team a
+the systems an org already runs on, modern or legacy, and hands the account team a
 brief: what is blocking, which record proves it, and what happens next.
 
 Built for Solutions Engineers, Solutions Architects, technical directors, and anyone else on the
