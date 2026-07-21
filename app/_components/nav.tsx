@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-type Tab = "patch" | "board" | "spend";
+type Tab = "patch" | "spend";
 
 function cls(active: boolean): string {
   return active
@@ -19,9 +19,6 @@ export function Nav({ active }: { active?: Tab }) {
         <nav className="flex items-center gap-1 text-sm">
           <Link href="/dashboard" className={cls(active === "patch")}>
             Patch
-          </Link>
-          <Link href="/board" className={cls(active === "board")}>
-            Stages
           </Link>
           <Link href="/spend" className={cls(active === "spend")}>
             Spend
