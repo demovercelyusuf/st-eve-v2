@@ -17,7 +17,7 @@ export type AccountSummary = {
 export type ActivityRow = {
   activityId: string;
   accountId: string;
-  activityType: "ticket" | "call" | "usage";
+  activityType: "call" | "usage";
   occurredAt: string;
   summary: string;
   detail: string | null;

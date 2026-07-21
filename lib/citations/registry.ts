@@ -28,12 +28,6 @@ export type CitationSource = {
 
 export const CITATION_SOURCES: readonly CitationSource[] = [
   {
-    kind: "ticket",
-    prefix: "ZD-",
-    origin: "warehouse",
-    whenMissing: "no support ticket with that id exists for this account",
-  },
-  {
     kind: "call",
     prefix: "GONG-",
     origin: "warehouse",

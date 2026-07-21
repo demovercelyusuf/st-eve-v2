@@ -16,7 +16,7 @@ export default defineEval({
     t.calledTool("emit_brief");
 
     t.check(t.reply ?? "", includes("Northwind"));
-    // A grounded brief cites real activity ids (ZD-, GONG-, USG-) rather than asserting bare claims.
-    t.check(/\b(ZD|GONG|USG)-\d/.test(t.reply ?? ""), equals(true));
+    // A grounded brief cites real record ids (GONG-, USG-, LIN-) rather than asserting bare claims.
+    t.check(/\b(GONG|USG|LIN)-/.test(t.reply ?? ""), equals(true));
   },
 });
