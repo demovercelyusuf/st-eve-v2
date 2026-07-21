@@ -68,10 +68,6 @@ export async function findAccount(query: string): Promise<AccountRef | null> {
   return row ? { accountId: row.account_id, name: row.name, seOwner: row.se_owner } : null;
 }
 
-export async function findAccountId(query: string): Promise<string | null> {
-  return (await findAccount(query))?.accountId ?? null;
-}
-
 // The account's identity, read from the warehouse dimension rather than from Salesforce.
 //
 // The account page used to take its name and industry from the CRM adapter and call notFound() when

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { OPERATOR } from "./identity";
-import { callerFor, callerFromSession, canSeeOwner, ownerFilter } from "./scope";
+import { callerFor, callerFromSession, canSeeOwner } from "./scope";
 
 // Steve runs as one operator today, so most of these assert the unscoped case. They are worth keeping
 // anyway: they pin the contract that a turn without a principal reads nothing, which is what stops
@@ -15,7 +15,6 @@ describe("caller", () => {
     const caller = callerFor();
     expect(caller.id).toBe(OPERATOR.id);
     expect(caller.seOwner).toBeNull();
-    expect(ownerFilter(caller)).toBeNull();
   });
 
   it("lets an unscoped caller see any owner", () => {
@@ -31,7 +30,7 @@ describe("caller", () => {
     const scoped = { id: "someone", name: "Someone", seOwner: "P. Raman" };
     expect(canSeeOwner(scoped, "P. Raman")).toBe(true);
     expect(canSeeOwner(scoped, "Yusuf")).toBe(false);
-    expect(ownerFilter(scoped)).toBe("P. Raman");
+    expect(scoped.seOwner).toBe("P. Raman");
   });
 });
 

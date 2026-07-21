@@ -53,20 +53,3 @@ export function FloatingMascot({ className, size = 132 }: { className?: string; 
     </div>
   );
 }
-
-// The same movement, tied to scroll position instead of to load, for everything below the fold.
-//
-// Browsers without animation-timeline ignore that one declaration and fall back to playing the
-// animation on load, which for a section the reader has not reached yet is indistinguishable from
-// it having always been there. That fallback is the reason this can ship unprefixed and without a
-// feature query: both paths end with the content visible.
-export function Reveal({ as: Tag = "div", children, className, delay = 0 }: RiseProps) {
-  return (
-    <Tag
-      className={className ? `reveal ${className}` : "reveal"}
-      style={{ "--rise-delay": `${delay}ms` } as CSSProperties}
-    >
-      {children}
-    </Tag>
-  );
-}
