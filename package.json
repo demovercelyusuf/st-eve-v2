@@ -8,14 +8,14 @@
     "#evals/*": "./evals/*"
   },
   "scripts": {
-    "build": "next build",
+    "build": "tsx scripts/migrate.ts && next build",
     "dev": "next dev",
     "start": "next start",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "eval": "eve eval",
     "seed": "tsx scripts/seed-warehouse.ts",
-    "db:migrate": "drizzle-kit migrate",
+    "db:migrate": "tsx scripts/migrate.ts",
     "db:status": "tsx scripts/check-appstore.ts",
     "build:eve": "eve build",
     "dev:eve": "eve dev",

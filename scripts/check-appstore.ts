@@ -29,7 +29,8 @@ const REQUIRED: Record<string, string[]> = {
   ],
   model_runs: ["id", "session_id", "created_at"],
   citations: ["id", "brief_run_id", "status"],
-  evidence: ["id", "session_id", "account_id"],
+  // Keyed by (session_id, citation_id), so there is no id column to look for here.
+  evidence: ["session_id", "citation_id", "account_id"],
 };
 
 async function main() {

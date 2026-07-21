@@ -1,4 +1,4 @@
-CREATE TABLE "evidence" (
+CREATE TABLE IF NOT EXISTS "evidence" (
 	"session_id" text NOT NULL,
 	"citation_id" text NOT NULL,
 	"account_id" text NOT NULL,
@@ -9,4 +9,4 @@ CREATE TABLE "evidence" (
 	CONSTRAINT "evidence_session_id_citation_id_pk" PRIMARY KEY("session_id","citation_id")
 );
 --> statement-breakpoint
-CREATE INDEX "evidence_lookup_idx" ON "evidence" USING btree ("session_id","account_id");
+CREATE INDEX IF NOT EXISTS "evidence_lookup_idx" ON "evidence" USING btree ("session_id","account_id");
