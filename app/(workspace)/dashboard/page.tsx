@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { PatchTable, type PatchTableRow } from "@/app/_components/patch-table";
 import { getCaller } from "@/lib/auth/server";
-import { getPatchOverview } from "@/lib/dashboard/patch";
+import { getPatchEngineering, getPatchRows } from "@/lib/dashboard/patch";
 import { fmtArr } from "@/lib/format";
 import { isClosed } from "@/lib/salesforce/stages";
 
@@ -27,7 +27,14 @@ export default function DashboardPage() {
           </Suspense>
         </div>
 
-        <Suspense fallback={<PatchSkeleton />}>
+        {/* Two boundaries, not one. The numbers need only the warehouse, so they land as soon as the
+            SQL answers. The table also waits on a live Linear read for its engineering column, and
+            behind a single boundary that made four integers wait on someone else's API. */}
+        <Suspense fallback={<KpiSkeleton />}>
+          <PatchKpis />
+        </Suspense>
+
+        <Suspense fallback={<TableSkeleton />}>
           <PatchBody />
         </Suspense>
       </div>
@@ -36,7 +43,8 @@ export default function DashboardPage() {
 }
 
 async function PatchSubtitle() {
-  const [{ rows }, caller] = await Promise.all([getPatchOverview(), getCaller()]);
+  // The subtitle needs a row count and nothing from Linear, so it takes the warehouse half only.
+  const [rows, caller] = await Promise.all([getPatchRows(), getCaller()]);
   return (
     <p className="mt-1 text-muted-foreground text-sm">
       {rows.length} accounts, owned by {caller?.name ?? "you"}. Ask the copilot for a brief on any of
@@ -50,14 +58,19 @@ async function PatchSubtitle() {
 // These are measured, not guessed. The previous values were a guess and they were wrong by 373px on
 // the table, which is a third of a screen of layout shift on the route a demo opens on. 86px is one
 // KPI tile and 757px is eleven rows plus the header, which is the whole seeded patch.
-function PatchSkeleton() {
+function KpiSkeleton() {
+  return (
+    <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {[0, 1, 2, 3].map((i) => (
+        <div className="h-[86px] animate-pulse rounded-xl border border-border bg-card" key={i} />
+      ))}
+    </div>
+  );
+}
+
+function TableSkeleton() {
   return (
     <>
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {[0, 1, 2, 3].map((i) => (
-          <div className="h-[86px] animate-pulse rounded-xl border border-border bg-card" key={i} />
-        ))}
-      </div>
       <div className="mt-6 h-9 animate-pulse rounded-md border border-border bg-card" />
       <div className="mt-3 h-[757px] animate-pulse rounded-xl border border-border bg-card" />
     </>
@@ -74,12 +87,26 @@ function Kpi({ label, tone, value }: { label: string; tone?: "risk"; value: stri
   );
 }
 
-async function PatchBody() {
-  const { engineering, rows } = await getPatchOverview();
+async function PatchKpis() {
+  const rows = await getPatchRows();
   const atRisk = rows.filter((p) => p.riskFlag === "At Risk").length;
   const awaiting = rows.filter((p) => !p.nextStep && p.stage && !isClosed(p.stage)).length;
   const wins = rows.filter((p) => p.stage === "Closed Won").length;
   const book = rows.reduce((sum, p) => sum + (p.arr || 0), 0);
+
+  return (
+    <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4" data-tour="kpis">
+      <Kpi label="At risk" tone="risk" value={String(atRisk)} />
+      <Kpi label="Awaiting next step" value={String(awaiting)} />
+      <Kpi label="Closed won" value={String(wins)} />
+      <Kpi label="Pipeline" value={fmtArr(book)} />
+    </div>
+  );
+}
+
+async function PatchBody() {
+  // Both cached per request, so the rows are read once even though two boundaries ask for them.
+  const [rows, engineering] = await Promise.all([getPatchRows(), getPatchEngineering()]);
 
   // Only the fields the table renders cross to the client. The read model carries the Slack channel
   // and the opportunity ids too, and shipping those into a client component would put them in the
@@ -97,25 +124,16 @@ async function PatchBody() {
     riskFlag: p.riskFlag,
     activityCount: p.activityCount,
     lastActivity: p.lastActivity,
-    openIssues: p.openIssues,
+    openIssues: engineering.connected ? (engineering.openByAccount[p.accountId] ?? 0) : null,
   }));
 
   return (
-    <>
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4" data-tour="kpis">
-        <Kpi label="At risk" tone="risk" value={String(atRisk)} />
-        <Kpi label="Awaiting next step" value={String(awaiting)} />
-        <Kpi label="Closed won" value={String(wins)} />
-        <Kpi label="Pipeline" value={fmtArr(book)} />
-      </div>
-
-      <div data-tour="patch">
-        <PatchTable
-          engineeringComplete={engineering.complete}
-          engineeringConnected={engineering.connected}
-          rows={tableRows}
-        />
-      </div>
-    </>
+    <div data-tour="patch">
+      <PatchTable
+        engineeringComplete={engineering.complete}
+        engineeringConnected={engineering.connected}
+        rows={tableRows}
+      />
+    </div>
   );
 }

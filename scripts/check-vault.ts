@@ -3,7 +3,7 @@ import { getWarehouseCreds } from "../lib/vault/creds";
 import { getAccountActivity } from "../lib/warehouse/repository";
 
 // Proves the copilot reads the warehouse with Vault-minted, short-lived credentials. Run with
-// VAULT_ADDR, an auth (VAULT_TOKEN locally, or VERCEL_OIDC_TOKEN for the JWT flow), and
+// VAULT_ADDR, an auth (VAULT_DEV_TOKEN locally, or VERCEL_OIDC_TOKEN for the JWT flow), and
 // VAULT_WAREHOUSE_HOST / VAULT_WAREHOUSE_DB set to the warehouse.
 
 async function main() {

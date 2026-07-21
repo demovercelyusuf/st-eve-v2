@@ -37,16 +37,3 @@ export async function getLatestBrief(accountId: string): Promise<LatestBrief | n
     droppedClaims: run.droppedClaims ?? 0,
   };
 }
-
-// Kept for callers that only want the run statistics. Reading the whole jsonb payload to count two
-// integers would be wasteful on a list view.
-export async function getLatestBriefRun(accountId: string) {
-  const db = appStore();
-  const [run] = await db
-    .select()
-    .from(schema.briefRuns)
-    .where(eq(schema.briefRuns.accountId, accountId))
-    .orderBy(desc(schema.briefRuns.createdAt))
-    .limit(1);
-  return run ?? null;
-}

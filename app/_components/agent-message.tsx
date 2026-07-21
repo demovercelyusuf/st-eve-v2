@@ -29,6 +29,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+// One eve message, rendered part by part: text, reasoning, tool calls, and the input requests a tool
+// can raise mid-turn. Both chat surfaces route every part through here, so they cannot drift on what
+// a tool call looks like; `compact` is the only thing that differs between them.
+//
+// The part worth knowing about is the interception. A result from emit_brief is not drawn as tool
+// output, it is recognised and rendered as a BriefCard. That is why the brief reads as a document
+// rather than as JSON.
+//
+// The recognition is structural rather than a type import, and that is deliberate: emit_brief can
+// also return a refusal, for an unknown account or a caller with no access. A refusal has to fall
+// through to the ordinary tool rendering instead of being drawn as an empty brief, and matching on
+// shape is what makes that fall-through automatic.
+
 export type AgentInputResponse = {
   readonly optionId?: string;
   readonly requestId: string;

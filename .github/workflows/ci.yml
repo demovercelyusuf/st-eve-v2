@@ -33,4 +33,3 @@ jobs:
         env:
           WAREHOUSE_DATABASE_URL: postgres://ci:ci@localhost:5432/ci
           APPSTORE_DATABASE_URL: postgres://ci:ci@localhost:5432/ci
-          SALESFORCE_MODE: warehouse
