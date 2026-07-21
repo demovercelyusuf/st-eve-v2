@@ -98,6 +98,42 @@ The warehouse credential does not come from Connect, and that is a third mechani
 
 **Cache Components** carries the read surfaces. Three routes prerender a static shell and stream their reads behind Suspense. The shell arrives in about 200ms, which is the difference between a blank page and a usable one while the reads land.
 
+#### What is static, what streams, and what revalidates
+
+`next build` classifies the routes, and the classification is the honest summary:
+
+| Route | Class | What is in the shell | What streams |
+| --- | --- | --- | --- |
+| `/` | Static | the whole page | nothing — it reads no data |
+| `/chat` | Static | the whole shell | nothing server-side; the conversation is an eve session on the client |
+| `/dashboard` | Partial Prerender | heading, filter row, skeletons | KPI tiles, then the patch table |
+| `/accounts/[id]` | Partial Prerender | back link, page chrome | the account, its evidence, the latest brief |
+| `/integrations` | Partial Prerender | heading and copy | each source's live status |
+| `/api/*`, `/health/*` | Dynamic | — | — |
+
+**Nothing revalidates, because nothing is cached.** That is a decision, not an omission, and it is worth being direct about: this project uses the prerendering half of Cache Components and none of the caching half. There is no `"use cache"` in the codebase, no `cacheLife`, no `cacheTag`, no ISR. The only `cache()` here is React's, in `lib/dashboard/patch.ts` and `lib/warehouse/repository.ts`, which memoises within a single render pass — `getAccount` was running twice per request, once for `generateMetadata` and once for the page — and does not survive the request.
+
+Three reasons, in ascending order of how much they actually bind.
+
+**It would mostly miss.** Two hundred SEs across eight thousand accounts, each reading their own patch. Cache keys are per-account and reuse between requests is low, so the hit rate would not pay for the staleness.
+
+**Freshness is the product's claim.** The system this replaces failed partly because it answered from a nightly snapshot, and the question an SE asks is "where are we *now*". A cached read can produce a brief that cites a record which has since changed — and the grounding gate would still pass it, because the citation resolves. The gate checks that a claim is backed, not that it is current.
+
+**And structurally, it cannot be done without giving up the credential model.** This is the real constraint, and it is demonstrable rather than argued. The warehouse credential is a Vault lease minted per request against the deployment's OIDC token, so `getWarehousePool()` declares that dynamism by awaiting `connection()`. Wrapping that read in `"use cache"` fails the build:
+
+```
+Error: Route /cachetest used `connection()` inside "use cache". The `connection()`
+function is used to indicate the subsequent code must only run when there is an
+actual request, but caches must be able to be produced before a request, so this
+function is not allowed in this scope.
+```
+
+Which is correct, and the two features are simply describing the same fact from opposite sides. A cache entry has to be producible before any request exists. A per-request credential does not exist before the request. Caching the warehouse read therefore means going back to a long-lived database credential, which is precisely what §3 removed.
+
+**The pushback I would expect, and where it lands.** The activity warehouse is populated by a nightly Fivetran and dbt pipeline, so that data provably cannot change intraday — reading it live on every request is the one place caching is obviously right, and "freshness" is a weak defence for a table that only moves once a day.
+
+That is fair, and the blocker is the paragraph above rather than disagreement. The fix is not `"use cache"` over the current read; it is to separate the credentialed read from the cacheable projection. A scheduled job writes a per-account projection into the app-store — which Vercel already owns, and which has no Vault dependency — and the page reads *that* under `"use cache"` with `cacheTag('account:<id>')`, invalidated by `revalidateTag` when a brief run completes or the nightly load lands. That is the design; it is not built, and I would rather name it than imply it exists.
+
 ---
 
 ## 4. Working demo
