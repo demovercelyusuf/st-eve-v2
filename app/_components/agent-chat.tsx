@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { AgentMessage } from "./agent-message";
 import { AgentStatusDot } from "./agent-status-dot";
 import { ModelRouter } from "./model-router";
+import { Wordmark } from "./wordmark";
 import { useCopilot } from "./copilot-provider";
 import { isSendable, toAgentMessage } from "./prompt-message";
 
@@ -112,7 +113,9 @@ export function AgentChat() {
       >
         {isEmpty ? (
           <div className="flex flex-col items-center gap-5 text-center">
-            <h1 className="font-medium text-5xl tracking-tighter">{AGENT_NAME}</h1>
+            <h1>
+              <Wordmark showDot={false} size="xl" />
+            </h1>
             <p className="text-muted-foreground text-sm">
               Ask about any account on your patch. Every claim comes back with the record that backs
               it.

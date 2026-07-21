@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
 import { Suspense, type ReactNode } from "react";
 import { CopilotDock } from "@/app/_components/copilot-dock";
 import { CopilotProvider } from "@/app/_components/copilot-provider";
@@ -19,6 +19,17 @@ const mono = Geist_Mono({
   variable: "--font-mono",
   subsets: ["latin"],
   weight: "variable",
+  display: "swap",
+});
+
+// The wordmark only. Geist is the right voice for the interface and the wrong one for a logo: it is
+// deliberately neutral, and a neutral logo is not a logo. Space Grotesk set in caps with tight
+// tracking gives the name some character without introducing a second typeface into the UI, because
+// nothing else on the page is allowed to use it.
+const display = Space_Grotesk({
+  variable: "--font-display-face",
+  subsets: ["latin"],
+  weight: ["700"],
   display: "swap",
 });
 
@@ -55,7 +66,7 @@ export const metadata: Metadata = {
 // prerendered layout, and neither reads request-time data, so the shell stays cacheable.
 export default function RootLayout({ children }: { readonly children: ReactNode }) {
   return (
-    <html className={cn(sans.variable, mono.variable)} lang="en" suppressHydrationWarning>
+    <html className={cn(sans.variable, mono.variable, display.variable)} lang="en" suppressHydrationWarning>
       <head>
         {/* Sets data-theme before first paint so the page never flashes the wrong skin. It has to
             be inline and render-blocking to run in time, which is why it is hand-written and tiny

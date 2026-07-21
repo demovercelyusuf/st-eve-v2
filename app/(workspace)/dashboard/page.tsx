@@ -102,7 +102,7 @@ async function PatchBody() {
         <Kpi label="At risk" tone="risk" value={String(atRisk)} />
         <Kpi label="Awaiting next step" value={String(awaiting)} />
         <Kpi label="Closed won" value={String(wins)} />
-        <Kpi label="Book" value={fmtArr(book)} />
+        <Kpi label="Pipeline" value={fmtArr(book)} />
       </div>
 
       <div data-tour="patch">

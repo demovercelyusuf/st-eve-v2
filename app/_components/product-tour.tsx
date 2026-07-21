@@ -36,11 +36,11 @@ export const APP_TOUR: readonly TourStep[] = [
   {
     target: '[data-tour="kpis"]',
     title: "Where the patch stands",
-    body: "What is at risk, what is still waiting on a next step, and what the book is worth. Read from the warehouse and the CRM together.",
+    body: "What is at risk, what is still waiting on a next step, and what the pipeline is worth. Read from the warehouse and the CRM together.",
   },
   {
     target: '[data-tour="patch"]',
-    title: "Every account, worst first",
+    title: "Every account on your patch",
     body: "Filter by stage, sort by any column, and open an account to see the evidence behind its risk read.",
   },
   {

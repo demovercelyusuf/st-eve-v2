@@ -3,6 +3,7 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { SidebarNav } from "./sidebar-nav";
+import { Wordmark } from "./wordmark";
 
 // The workspace nav below lg: a hamburger that opens a slide-out drawer. Above lg the fixed sidebar
 // in the shell takes over and this renders nothing but the trigger, hidden.
@@ -113,7 +114,7 @@ export function MobileNav() {
               transition={{ duration, ease: "easeOut", type: "tween" }}
             >
               <div className="mb-4 flex items-center justify-between">
-                <span className="font-semibold text-lg">Steve</span>
+                <Wordmark />
                 <button
                   aria-label="Close menu"
                   className="grid size-9 place-items-center rounded-lg text-muted-foreground hover:bg-accent/60 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"

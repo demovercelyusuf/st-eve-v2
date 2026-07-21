@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
 import { MobileNav } from "./mobile-nav";
+import { Wordmark } from "./wordmark";
 import { ProductTour, TourButton } from "./product-tour";
 import { NavLinks, SidebarNav } from "./sidebar-nav";
 import { ThemeSwitcher } from "./theme-switcher";
@@ -20,11 +21,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="flex items-center gap-1.5">
           <MobileNav />
           <Link
-            className="flex items-center gap-2 rounded-md font-semibold text-base focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+            className="rounded-md focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
             href="/dashboard"
           >
-            <span aria-hidden className="inline-block size-2 rounded-full bg-emerald-500" />
-            Steve
+            <Wordmark />
           </Link>
         </div>
 

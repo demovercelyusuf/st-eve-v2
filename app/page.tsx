@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FloatingMascot, Rise } from "@/app/_components/motion";
+import { Wordmark } from "@/app/_components/wordmark";
 
 // The front door, and nothing else.
 //
@@ -26,9 +27,8 @@ export default function Page() {
       {/* The landing owns its own chrome rather than borrowing the workspace shell, so it reads as a
           product page and not as somewhere you are already signed in. */}
       <header className="flex shrink-0 items-center justify-between px-6 py-5">
-        <span className="flex items-center gap-2 font-medium">
-          <span aria-hidden className="inline-block size-2 rounded-full bg-emerald-500" />
-          Steve
+        <span className="flex items-center gap-2">
+          <Wordmark />
           {/* The version, stated rather than implied. This is a second pass at the idea and the
               build is better for having had a first one, so there is nothing to be coy about. */}
           <span className="rounded-full border border-border px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">

@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { AgentMessage } from "./agent-message";
 import { AgentStatusDot } from "./agent-status-dot";
 import { ModelRouter } from "./model-router";
+import { Wordmark } from "./wordmark";
 import { useCopilot } from "./copilot-provider";
 import { isSendable, toAgentMessage } from "./prompt-message";
 
@@ -200,7 +201,7 @@ export function CopilotDock() {
             setMaximized((m) => !m);
           }}
         />
-        <span className="ml-1.5 font-medium text-sm">Steve</span>
+        <Wordmark className="ml-1.5" showDot={false} size="sm" />
         <AgentStatusDot status={agent.status} />
         <Link
           className="ml-auto rounded-md px-2 py-1 text-muted-foreground text-xs transition-colors hover:bg-muted hover:text-foreground"
