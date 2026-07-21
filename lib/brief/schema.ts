@@ -9,7 +9,7 @@ export const CitedClaim = z.object({
   text: z.string().min(1).describe("one factual sentence for the brief"),
   citations: z
     .array(z.string())
-    .describe("activity ids that back this exact sentence, for example ['ZD-4471','GONG-882']"),
+    .describe("activity ids that back this exact sentence, for example ['ZD-4471','GONG-902']"),
 });
 
 export const NextStep = z.object({
@@ -56,5 +56,8 @@ export type ShippedBrief = {
     signals: string[];
   };
   needsReview: DroppedClaim[];
+  // Every id that survived the gate, in the order the brief first cited it. Renderers use this to
+  // build a source list without re-deriving what "cited" means.
+  citedIds: string[];
   grounding: { shippedClaims: number; citedClaims: number; droppedClaims: number };
 };

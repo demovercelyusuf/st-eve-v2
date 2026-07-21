@@ -1,0 +1,58 @@
+import { describe, expect, it } from "vitest";
+import { OPERATOR } from "./identity";
+import { callerFor, callerFromSession, canSeeOwner, ownerFilter } from "./scope";
+
+// Steve runs as one operator today, so most of these assert the unscoped case. They are worth keeping
+// anyway: they pin the contract that a turn without a principal reads nothing, which is what stops
+// the agent becoming a looser door onto the warehouse than the web surface is.
+
+function session(current: { principalId: string; principalType: string } | null) {
+  return { auth: { current: current ? { ...current, attributes: {} } : null } };
+}
+
+describe("caller", () => {
+  it("resolves the operator as unscoped", () => {
+    const caller = callerFor();
+    expect(caller.id).toBe(OPERATOR.id);
+    expect(caller.seOwner).toBeNull();
+    expect(ownerFilter(caller)).toBeNull();
+  });
+
+  it("lets an unscoped caller see any owner", () => {
+    const caller = callerFor();
+    expect(canSeeOwner(caller, "Yusuf")).toBe(true);
+    expect(canSeeOwner(caller, "someone else")).toBe(true);
+    expect(canSeeOwner(caller, null)).toBe(true);
+  });
+
+  it("confines a scoped caller to its own book", () => {
+    // No scoped caller exists yet. Asserting the branch anyway keeps the entitlement rule honest, so
+    // that adding a second reader later is a data change rather than a logic change nobody tested.
+    const scoped = { id: "someone", name: "Someone", seOwner: "P. Raman" };
+    expect(canSeeOwner(scoped, "P. Raman")).toBe(true);
+    expect(canSeeOwner(scoped, "Yusuf")).toBe(false);
+    expect(ownerFilter(scoped)).toBe("P. Raman");
+  });
+});
+
+describe("session", () => {
+  it("resolves the operator from a user principal", () => {
+    expect(callerFromSession(session({ principalId: OPERATOR.id, principalType: "user" }))?.id).toBe(
+      OPERATOR.id,
+    );
+  });
+
+  it("reads nothing without a principal", () => {
+    expect(callerFromSession(session(null))).toBeNull();
+    expect(callerFromSession(undefined)).toBeNull();
+  });
+
+  it("rejects a non-user principal", () => {
+    // A runtime or subagent caller authenticates, but it is not a person and has no book of accounts.
+    expect(callerFromSession(session({ principalId: OPERATOR.id, principalType: "service" }))).toBeNull();
+  });
+
+  it("rejects an unknown subject", () => {
+    expect(callerFromSession(session({ principalId: "somebody-else", principalType: "user" }))).toBeNull();
+  });
+});
