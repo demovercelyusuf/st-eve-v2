@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { AccountBriefSection } from "@/app/_components/account-brief-section";
 import { EvidenceTimeline } from "@/app/_components/evidence-timeline";
-import { Nav } from "@/app/_components/nav";
 import { RiskBadge } from "@/app/_components/badges";
 import { getAccountEvidence } from "@/lib/account/timeline";
 import { getLatestBrief } from "@/lib/appstore/briefs";
@@ -17,8 +16,7 @@ import { getAccount } from "@/lib/warehouse/repository";
 // the static shell while the account itself streams in behind Suspense.
 export default function AccountPage({ params }: { readonly params: Promise<{ id: string }> }) {
   return (
-    <main className="min-h-dvh bg-background text-foreground">
-      <Nav />
+    <div>
       <div className="mx-auto max-w-4xl px-6 py-8">
         <Link className="text-muted-foreground text-sm hover:text-foreground" href="/dashboard">
           ← Patch
@@ -27,7 +25,7 @@ export default function AccountPage({ params }: { readonly params: Promise<{ id:
           <AccountDetail params={params} />
         </Suspense>
       </div>
-    </main>
+    </div>
   );
 }
 

@@ -1,4 +1,5 @@
 import { PRIORITY_LABEL, type RenderableBrief, groundingFooter, sourceUrl } from "@/lib/brief/render";
+import { BriefActions } from "./brief-actions";
 
 // The brief on the web, rendered from the emit_brief tool RESULT rather than the model's closing
 // prose. Same rule as the Slack card: the prose is unverified markdown that happens to sit next to a
@@ -165,6 +166,10 @@ export function BriefCard({ brief }: { readonly brief: RenderableBrief }) {
           </p>
         ) : null}
       </footer>
+
+      {/* Below the grounding footer on purpose. What the gate did is the last thing you read before
+          deciding whether this is worth sending, so the send lives after it rather than before. */}
+      <BriefActions brief={brief} />
     </article>
   );
 }

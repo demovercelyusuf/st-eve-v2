@@ -1,6 +1,16 @@
 @import "tailwindcss";
 @source "../node_modules/streamdown/dist/*.js";
 
+/* Bind dark: to the selected skin rather than to the OS.
+ *
+ * Tailwind compiles dark: to a prefers-color-scheme query by default. Every skin here is an
+ * attribute on the root element and the comment below says prefers-color-scheme is deliberately not
+ * used, so the two were pointing at different things: a dark:text-amber-400 rendered its light value
+ * while the dark skin was active, and its dark value while the light skin was active on a dark-mode
+ * machine. Both directions produced real contrast failures, around 1.4:1 in the worst case, and
+ * neither was visible on a developer machine that happened to match. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -26,6 +36,7 @@
   --radius-xl: calc(var(--radius) + 4px);
   --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
+  --font-display: var(--font-display-face), "Geist", ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
@@ -52,28 +63,86 @@
   --radius: 0.625rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-  }
+/* ---------------------------------------------------------------------------
+ * Skins.
+ *
+ * Four themes, selected explicitly rather than inherited from the OS. prefers-color-scheme is
+ * deliberately not used: the skin is a product surface here, something a viewer switches to see the
+ * same interface wear a different brand, so the OS preference is not the input. An inline script in
+ * the document head sets data-theme before first paint, so there is no flash and no client round
+ * trip. See lib/themes.ts.
+ *
+ * Every skin defines the full token set. Partial overrides are how a theme ends up with an unreadable
+ * pairing that nobody notices until a screenshot.
+ * --------------------------------------------------------------------------- */
+
+/* Dark ops: near-black with an electric violet signature. */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.78 0.14 296);
+  --primary-foreground: oklch(0.16 0.02 296);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.72 0 0);
+  --accent: oklch(0.30 0.05 296);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.78 0.14 296);
+}
+
+/* Warm and human: cream paper, terracotta ink. */
+[data-theme="warm"] {
+  color-scheme: light;
+  --background: oklch(0.968 0.012 85);
+  --foreground: oklch(0.24 0.02 40);
+  --card: oklch(0.995 0.006 85);
+  --card-foreground: oklch(0.24 0.02 40);
+  --popover: oklch(0.995 0.006 85);
+  --popover-foreground: oklch(0.24 0.02 40);
+  --primary: oklch(0.55 0.13 40);
+  --primary-foreground: oklch(0.985 0.008 85);
+  --secondary: oklch(0.93 0.018 75);
+  --secondary-foreground: oklch(0.30 0.03 40);
+  --muted: oklch(0.93 0.018 75);
+  --muted-foreground: oklch(0.50 0.03 50);
+  --accent: oklch(0.92 0.035 55);
+  --accent-foreground: oklch(0.30 0.04 40);
+  --destructive: oklch(0.55 0.20 27);
+  --border: oklch(0.88 0.02 70);
+  --input: oklch(0.88 0.02 70);
+  --ring: oklch(0.55 0.13 40);
+}
+
+/* Expressive: white ground, violet that does not apologise. */
+[data-theme="expressive"] {
+  color-scheme: light;
+  --background: oklch(0.99 0.004 290);
+  --foreground: oklch(0.17 0.03 290);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.17 0.03 290);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.17 0.03 290);
+  --primary: oklch(0.47 0.26 285);
+  --primary-foreground: oklch(0.99 0.004 290);
+  --secondary: oklch(0.94 0.02 290);
+  --secondary-foreground: oklch(0.30 0.10 285);
+  --muted: oklch(0.95 0.014 290);
+  --muted-foreground: oklch(0.48 0.04 290);
+  --accent: oklch(0.93 0.045 290);
+  --accent-foreground: oklch(0.30 0.12 285);
+  --destructive: oklch(0.55 0.22 25);
+  --border: oklch(0.90 0.02 290);
+  --input: oklch(0.90 0.02 290);
+  --ring: oklch(0.47 0.26 285);
 }
 
 * {

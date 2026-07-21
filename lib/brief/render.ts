@@ -41,7 +41,9 @@ export function groundingFooter(brief: RenderableBrief): string {
   const { citedClaims, droppedClaims } = brief.grounding;
   const sources = brief.citedIds.length;
   const withheld = droppedClaims === 0 ? "nothing withheld" : `${droppedClaims} withheld`;
-  return `${citedClaims} claims, every one cited to ${sources} ${sources === 1 ? "record" : "records"}, ${withheld}.`;
+  // "record" was already pluralised and "claims" was not, which only shows up on a one-claim brief
+  // and looks careless on the exact line the product is asking to be trusted on.
+  return `${citedClaims} ${citedClaims === 1 ? "claim" : "claims"}, every one cited to ${sources} ${sources === 1 ? "record" : "records"}, ${withheld}.`;
 }
 
 // What a Slack client shows in a notification, and what a page title can fall back to.
