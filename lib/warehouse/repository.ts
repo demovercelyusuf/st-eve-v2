@@ -1,4 +1,4 @@
-import { getWarehousePool } from "./client";
+import { warehouseQuery } from "./client";
 
 // Read-only access to the account-activity warehouse. This is the "read across the boundary in
 // bulk" path: history keyed by account_id, every row carrying a citable activity id. Nothing here
@@ -31,7 +31,7 @@ function toDate(value: unknown): string {
 // the caller's book is never read in the first place. Null means unscoped, which is how leadership
 // reads everything without a second query.
 export async function listAccounts(ownerSe: string | null = null): Promise<AccountSummary[]> {
-  const { rows } = await (await getWarehousePool()).query(
+  const { rows } = await warehouseQuery(
     `select account_id, name, industry, segment, arr, se_owner, slack_channel
        from activity.dim_account
       where $1::text is null or se_owner = $1
@@ -57,7 +57,7 @@ export type AccountRef = { accountId: string; name: string; seOwner: string };
 // company than pretending it does not exist, and it keeps authorization in one auditable place rather
 // than smeared across every query.
 export async function findAccount(query: string): Promise<AccountRef | null> {
-  const { rows } = await (await getWarehousePool()).query(
+  const { rows } = await warehouseQuery(
     `select account_id, name, se_owner from activity.dim_account
       where account_id = $1 or name ilike '%' || $1 || '%'
       order by (account_id = $1) desc
@@ -80,7 +80,7 @@ export async function findAccountId(query: string): Promise<string | null> {
 // the warehouse answers "who is this" and the CRM answers "what is the deal doing". A CRM failure
 // then degrades one panel instead of 404ing the whole account.
 export async function getAccount(accountId: string): Promise<AccountSummary | null> {
-  const { rows } = await (await getWarehousePool()).query(
+  const { rows } = await warehouseQuery(
     `select account_id, name, industry, segment, arr, se_owner, slack_channel
        from activity.dim_account
       where account_id = $1`,
@@ -101,7 +101,7 @@ export async function getAccount(accountId: string): Promise<AccountSummary | nu
 }
 
 export async function getAccountActivity(accountId: string): Promise<ActivityRow[]> {
-  const { rows } = await (await getWarehousePool()).query(
+  const { rows } = await warehouseQuery(
     `select activity_id, account_id, activity_type, occurred_at, summary, detail
        from activity.fct_account_activity
       where account_id = $1
@@ -121,7 +121,7 @@ export async function getAccountActivity(accountId: string): Promise<ActivityRow
 // The set of activity ids that actually exist for an account. The grounding gate uses this to
 // verify every citation resolves to a real row before a brief ships.
 export async function getKnownActivityIds(accountId: string): Promise<Set<string>> {
-  const { rows } = await (await getWarehousePool()).query(
+  const { rows } = await warehouseQuery(
     `select activity_id from activity.fct_account_activity where account_id = $1`,
     [accountId],
   );
