@@ -17,7 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import { AgentMessage } from "./agent-message";
 
-const AGENT_NAME = "Vantage Copilot";
+const AGENT_NAME = "Steve";
 
 type AgentStatus = ReturnType<typeof useEveAgent>["status"];
 
