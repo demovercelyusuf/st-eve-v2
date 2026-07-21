@@ -54,7 +54,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Suspense>
         </aside>
 
-        <main className="min-w-0 flex-1">
+        {/* The copilot launcher is a fixed 64x56 box sitting 72px off the bottom, and every page
+            ends in py-8, so the last row of every page was underneath it and untappable. Reserved
+            here once rather than in each page's container. Above sm the launcher sits clear. */}
+        <main className="min-w-0 flex-1 pb-24 sm:pb-0">
           {/* The fallback is the page itself, unanimated. PageTransition reads usePathname, which
               cannot appear in a prerendered tree, so without this the whole workspace drops out of
               the static shell to add a fade. The prerendered HTML carries the real content and the

@@ -57,7 +57,7 @@ export function AccountBriefSection({
   if (!latest) {
     return (
       <section className="mt-6 rounded-xl border border-border border-dashed p-5">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="font-medium text-sm">No brief yet</h2>
             <p className="mt-1 text-muted-foreground text-sm">
@@ -75,7 +75,7 @@ export function AccountBriefSection({
   if (!latest.brief) {
     return (
       <section className="mt-6 rounded-xl border border-border bg-card p-5">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="font-medium text-sm">Latest brief</h2>
             <p className="mt-1 text-muted-foreground text-sm">

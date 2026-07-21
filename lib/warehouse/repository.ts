@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { warehouseQuery } from "./client";
 
 // Read-only access to the account-activity warehouse. This is the "read across the boundary in
@@ -75,7 +76,14 @@ export async function findAccount(query: string): Promise<AccountRef | null> {
 // Identity belongs to the source that must be up for the page to have a reason to exist at all, so
 // the warehouse answers "who is this" and the CRM answers "what is the deal doing". A CRM failure
 // then degrades one panel instead of 404ing the whole account.
-export async function getAccount(accountId: string): Promise<AccountSummary | null> {
+//
+// Wrapped in cache() because the account page asks for this twice per request: once in
+// generateMetadata to title the tab, once in getAccountEvidence to render the page. Nothing dedupes
+// it underneath — warehouseQuery is a raw pg query, not fetch, so Next's request memoization does
+// not apply — so that was two round trips to answer the same question about the same id.
+export const getAccount = cache(async function getAccount(
+  accountId: string,
+): Promise<AccountSummary | null> {
   const { rows } = await warehouseQuery(
     `select account_id, name, industry, segment, arr, se_owner, slack_channel
        from activity.dim_account
@@ -94,7 +102,7 @@ export async function getAccount(accountId: string): Promise<AccountSummary | nu
         slackChannel: r.slack_channel,
       }
     : null;
-}
+});
 
 export async function getAccountActivity(accountId: string): Promise<ActivityRow[]> {
   const { rows } = await warehouseQuery(

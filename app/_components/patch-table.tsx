@@ -131,7 +131,14 @@ export function PatchTable({
 
   return (
     <div className="mt-6">
-      <div className="flex flex-wrap items-center gap-2">
+      {/* Explicitly stacked below 537px rather than left to wrap.
+
+          The wrap point is not a round number: min-w-56 on the search box plus the select's 175px
+          intrinsic width — set by the widest stage label — cannot share a line under 537px. The
+          skeleton reserved one row's height, the real thing rendered two, and everything below it
+          including the table jumped 44px when the data landed. Stating the threshold lets the
+          skeleton match it exactly, which is the only way this shift goes to zero. */}
+      <div className="flex flex-col gap-2 min-[537px]:flex-row min-[537px]:flex-wrap min-[537px]:items-center">
         <div className="relative min-w-56 flex-1">
           <SearchIcon className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-2.5 size-4 text-muted-foreground" />
           <input
@@ -189,8 +196,25 @@ export function PatchTable({
         ) : null}
       </div>
 
-      <div className="mt-3 overflow-x-auto rounded-xl border border-border">
-        <table className="w-full min-w-[52rem] text-sm">
+      {/* max-h and overflow-auto rather than overflow-x-auto, because the sticky header was never
+          sticking. `sticky top-0` resolves against the nearest scroll container, and setting
+          overflow-x makes overflow-y compute to auto, so this wrapper was already the scrollport —
+          one with no height, therefore never vertically scrollable, so the header tracked the page
+          scroll 1:1 and left. Giving the wrapper a height makes it a real scrollport and the header
+          pins to it, which matters most on a phone where you have scrolled sideways into a column
+          whose label is the only thing telling you what it is. */}
+      <div className="mt-3 max-h-[70dvh] overflow-auto rounded-xl border border-border">
+        {/* The floor was a flat 52rem at every width, which on a 320px phone hid 577px of table
+            behind a scroller with no affordance saying so — including the Risk badge that the
+            At-risk count above is counting. It also bound at exactly the wrong moment going up:
+            crossing to lg introduced the 224px sidebar and the Activity column in the same pixel, so
+            the table overflowed by 116px at 1024 having been clean at 1023.
+
+            Now the phone drops to the three columns it has room for, Activity waits for xl, and the
+            only remaining floor is at xl where there is genuinely width to spend. Measured after:
+            zero overflow at 390, 430, 768, 1023, 1140 and 1280, one pixel at 1024, and 70px at 320
+            where three columns of real content simply do not fit and the scroller does its job. */}
+        <table className="w-full text-sm xl:min-w-[54rem]">
           <thead className="sticky top-0 z-10 bg-muted/60 text-left backdrop-blur">
             <tr className="border-border border-b">
               <Th align="left" onSort={() => toggleSort("name")} sort={sort} sortKey="name">
@@ -199,23 +223,41 @@ export function PatchTable({
               <Th align="left" onSort={() => toggleSort("risk")} sort={sort} sortKey="risk">
                 Risk
               </Th>
-              <Th align="left" onSort={() => toggleSort("stage")} sort={sort} sortKey="stage">
+              <Th
+                align="left"
+                className="hidden md:table-cell"
+                onSort={() => toggleSort("stage")}
+                sort={sort}
+                sortKey="stage"
+              >
                 Stage
               </Th>
-              <Th align="right" onSort={() => toggleSort("value")} sort={sort} sortKey="value">
+              <Th
+                align="right"
+                className="hidden md:table-cell"
+                onSort={() => toggleSort("value")}
+                sort={sort}
+                sortKey="value"
+              >
                 Value
               </Th>
               <th className="px-3 py-2 font-medium text-muted-foreground">Next step</th>
               <Th
                 align="right"
-                className="hidden lg:table-cell"
+                className="hidden xl:table-cell"
                 onSort={() => toggleSort("activity")}
                 sort={sort}
                 sortKey="activity"
               >
                 Activity
               </Th>
-              <Th align="right" onSort={() => toggleSort("issues")} sort={sort} sortKey="issues">
+              <Th
+                align="right"
+                className="hidden md:table-cell"
+                onSort={() => toggleSort("issues")}
+                sort={sort}
+                sortKey="issues"
+              >
                 Eng
               </Th>
             </tr>
@@ -224,11 +266,24 @@ export function PatchTable({
           <tbody>
             {visible.map((r) => (
               <tr className="border-border border-b last:border-0 hover:bg-muted/40" key={r.accountId}>
-                <td className="max-w-64 px-3 py-2.5">
-                  <Link className="truncate font-medium hover:underline" href={`/accounts/${r.accountId}`}>
+                {/* line-clamp-1 rather than truncate, and the difference is what makes the phone
+                    layout work at all. truncate sets white-space: nowrap, so a cell's min-content
+                    becomes the width of the entire unbroken string — 220px for an account name —
+                    and a table column cannot go below its min-content. That one declaration held
+                    this column at 256px inside a 255px viewport, which put the Risk badge, the thing
+                    the At-risk count is counting, off the right edge on every phone. Clamping to one
+                    line instead drops min-content to the longest single word and still ellipsises.
+
+                    block, because next/link renders an inline box and neither clamping nor
+                    truncation applies to one. */}
+                <td className="max-w-40 px-3 py-2.5 md:max-w-64">
+                  <Link
+                    className="block line-clamp-1 font-medium hover:underline"
+                    href={`/accounts/${r.accountId}`}
+                  >
                     {r.name}
                   </Link>
-                  <div className="truncate text-muted-foreground text-xs">
+                  <div className="line-clamp-1 text-muted-foreground text-xs">
                     {r.industry}
                     {r.segment ? ` · ${r.segment}` : ""} · {fmtArr(r.arr)}
                   </div>
@@ -238,7 +293,7 @@ export function PatchTable({
                   <RiskBadge risk={r.riskFlag} />
                 </td>
 
-                <td className="px-3 py-2.5">
+                <td className="hidden px-3 py-2.5 md:table-cell">
                   <StageBadge stage={r.stage} />
                   {r.closeDate ? (
                     <div className="mt-0.5 whitespace-nowrap text-muted-foreground text-xs">
@@ -247,7 +302,7 @@ export function PatchTable({
                   ) : null}
                 </td>
 
-                <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums">
+                <td className="hidden whitespace-nowrap px-3 py-2.5 text-right tabular-nums md:table-cell">
                   {r.amount ? fmtArr(r.amount) : <span className="text-muted-foreground">·</span>}
                 </td>
 
@@ -261,7 +316,7 @@ export function PatchTable({
                   )}
                 </td>
 
-                <td className="hidden whitespace-nowrap px-3 py-2.5 text-right text-muted-foreground tabular-nums lg:table-cell">
+                <td className="hidden whitespace-nowrap px-3 py-2.5 text-right text-muted-foreground tabular-nums xl:table-cell">
                   {r.activityCount}
                   {r.lastActivity ? (
                     <div className="text-xs">last {r.lastActivity}</div>
@@ -271,7 +326,7 @@ export function PatchTable({
                 {/* An unchecked account renders as a dash, never as a zero. Zero is a claim that
                     engineering has nothing open, and we have not earned it when Linear did not
                     answer. */}
-                <td className="px-3 py-2.5 text-right tabular-nums">
+                <td className="hidden px-3 py-2.5 text-right tabular-nums md:table-cell">
                   {r.openIssues === null ? (
                     <span className="text-muted-foreground" title="Linear was not consulted">
                       ·
@@ -297,13 +352,19 @@ export function PatchTable({
           {visible.length > 0 ? (
             <tfoot>
               <tr className="border-border border-t bg-muted/40 text-muted-foreground text-xs">
-                <td className="px-3 py-2" colSpan={3}>
+                {/* The footer has to track the columns. Below md the Value column is not rendered,
+                    so its total has nothing to sit under and both numbers share one cell instead. */}
+                <td className="px-3 py-2 md:hidden" colSpan={3}>
+                  {visible.length} of {rows.length} accounts · {fmtArr(total)}
+                </td>
+
+                <td className="hidden px-3 py-2 md:table-cell" colSpan={3}>
                   {visible.length} of {rows.length} accounts
                 </td>
-                <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
+                <td className="hidden whitespace-nowrap px-3 py-2 text-right tabular-nums md:table-cell">
                   {fmtArr(total)}
                 </td>
-                <td colSpan={3} />
+                <td className="hidden md:table-cell" colSpan={3} />
               </tr>
             </tfoot>
           ) : null}

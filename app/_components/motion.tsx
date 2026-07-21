@@ -42,11 +42,15 @@ export function Rise({ as: Tag = "div", children, className, delay = 0 }: RisePr
 export function FloatingMascot({ className, size = 132 }: { className?: string; size?: number }) {
   return (
     <div className={className ? `float ${className}` : "float"}>
+      {/* sizes, because the rendered width steps 96 to 132 at sm and the intrinsic width prop does
+          not say so. Without it the generated candidates are 96 and 256, and above sm the browser
+          picks the 96px source for a 132px box — upscaling the landing page's focal image. */}
       <Image
         alt=""
         className="h-auto w-24 object-contain drop-shadow-xl sm:w-[132px]"
         height={size}
         priority
+        sizes="(min-width: 640px) 132px, 96px"
         src="/steve.png"
         width={size}
       />

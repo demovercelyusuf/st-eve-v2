@@ -11,6 +11,16 @@
  * neither was visible on a developer machine that happened to match. */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
+/* Wide enough AND tall enough.
+ *
+ * The dock's model-router rail was gated on sm:, a width-only test, which a landscape phone passes
+ * on a viewport 390px tall. Inside a 294px panel the blocks above the tools list floor at their
+ * content height, so the one flexible child got 9px to render 107px of content. A width breakpoint
+ * cannot express this: landscape phones are 844 and 932 wide, so md: is a no-op for exactly the case
+ * it would be reached for, and it would also drop the rail from 640-767 tablets where it measured
+ * fine. What the rail actually needs is vertical room, so that is what this asks for. */
+@custom-variant roomy (@media (min-width: 640px) and (min-height: 600px));
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

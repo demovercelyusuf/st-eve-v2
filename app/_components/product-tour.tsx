@@ -64,11 +64,22 @@ export const APP_TOUR: readonly TourStep[] = [
   },
 ] as const;
 
-export function TourButton({ className = "" }: { className?: string }) {
+export function TourButton({
+  className = "",
+  onStart,
+}: {
+  className?: string;
+  // The drawer renders one of these and needs to close itself before the tour starts, because it
+  // holds body overflow hidden and the tour scrolls its targets into view.
+  onStart?: () => void;
+}) {
   return (
     <button
       className={`rounded-lg border border-border px-3 py-1.5 font-medium text-muted-foreground text-sm transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2 ${className}`}
-      onClick={() => window.dispatchEvent(new Event(START_EVENT))}
+      onClick={() => {
+        onStart?.();
+        window.dispatchEvent(new Event(START_EVENT));
+      }}
       type="button"
     >
       Take a tour

@@ -183,7 +183,9 @@ export function CopilotDock() {
           ? "top-0 h-dvh sm:inset-3 sm:h-auto"
           : minimized
             ? "h-auto sm:right-4 sm:bottom-4 sm:w-[min(40rem,calc(100vw-2rem))]"
-            : "h-[72dvh] sm:right-4 sm:bottom-4 sm:h-[min(34rem,calc(100dvh-6rem))] sm:w-[min(40rem,calc(100vw-2rem))]",
+            : // svh rather than dvh for the sheet's own height: dvh changes as Safari's URL bar
+              // collapses, which resizes the sheet underneath the finger that is scrolling it.
+              "h-[72svh] sm:right-4 sm:bottom-4 sm:h-[min(34rem,calc(100dvh-6rem))] sm:w-[min(40rem,calc(100vw-2rem))]",
       )}
       onKeyDown={handlePanelKeyDown}
       role="dialog"
@@ -217,17 +219,32 @@ export function CopilotDock() {
         >
           Full page
         </Link>
+
+        {/* A named exit, phones only. Below sm the maximized panel covers the entire viewport
+            including the app's own header, so the traffic lights are the only way back — and
+            Escape and Cmd+K, which is how you would leave on a laptop, do not exist on a phone.
+            There was 276px of free header space at 390 to say the word. */}
+        <button
+          className="rounded-md px-2 py-1 text-muted-foreground text-xs transition-colors hover:bg-muted hover:text-foreground sm:hidden"
+          onClick={dismiss}
+          type="button"
+        >
+          Close
+        </button>
       </header>
 
       {/* Everything below the title bar collapses when minimized, so the yellow light parks the
           panel as a title bar without ending the turn streaming inside it. */}
       <div className={cn("flex min-h-0 flex-1", minimized && "hidden")}>
-        <div className="flex min-h-0 flex-1 flex-col">
+        {/* min-w-0, which /chat has and this did not. Without it one long token in a message or an
+            error string sets this column's min-content width, pushes against the fixed-width router
+            rail and gets clipped by the panel. */}
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       {agent.error ? (
         <div className="shrink-0 px-3 pt-2">
           <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-2.5 py-2 text-xs">
             <AlertCircleIcon className="mt-0.5 size-3.5 shrink-0 text-destructive" />
-            <p className="text-muted-foreground">{agent.error.message}</p>
+            <p className="wrap-anywhere text-muted-foreground">{agent.error.message}</p>
           </div>
         </div>
       ) : null}
@@ -284,12 +301,12 @@ export function CopilotDock() {
           </div>
         </div>
 
-        {/* Hidden below sm. On a phone the panel is already a bottom sheet and 13rem of routing
-            table would take the conversation's whole width to say something nobody reads on a
-            phone. */}
+        {/* Needs width and height both, hence roomy rather than sm. On a phone the panel is already
+            a bottom sheet and 13rem of routing table would take the conversation's whole width; in
+            landscape it fits sideways and then has no vertical room to render into. */}
         <ModelRouter
           busy={isBusy(agent.status)}
-          className="hidden sm:flex"
+          className="hidden roomy:flex"
           messages={agent.data.messages}
         />
       </div>
@@ -313,7 +330,11 @@ function Light({
   return (
     <button
       aria-label={label}
-      className="group grid size-3 place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+      // 12px painted, 36px touchable. The dot is a deliberate reference to a window title bar and
+      // should stay 12px, but on a phone these three were the only way out of a sheet that covers
+      // the whole screen, and a 12px target is a quarter of the 44px iOS minimum — four pixels off
+      // the red dot already missed it. The ::before carries the target without moving the dot.
+      className="group relative grid size-3 place-items-center rounded-full before:absolute before:-inset-3 before:content-[''] focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
       onClick={onClick}
       style={{ background: color }}
       title={label}

@@ -89,15 +89,19 @@ export const ToolHeader = ({
 
   return (
     <CollapsibleTrigger
-      className={cn("flex w-full items-center justify-between gap-4 p-3", className)}
+      // A tool name plus its status badge needs about 305px and has 253 at 320, and nothing in here
+      // could shrink, so justify-between degraded to flex-start and pushed the chevron out past the
+      // clip — losing the one affordance that says the row opens. The name truncates now, and the
+      // chevron is pinned.
+      className={cn("flex w-full items-center justify-between gap-2 p-3 sm:gap-4", className)}
       {...props}
     >
-      <div className="flex items-center gap-2">
-        <WrenchIcon className="size-4 text-muted-foreground" />
-        <span className="font-medium text-sm">{title ?? derivedName}</span>
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        <WrenchIcon className="size-4 shrink-0 text-muted-foreground" />
+        <span className="truncate font-medium text-sm">{title ?? derivedName}</span>
         {getStatusBadge(state)}
       </div>
-      <ChevronDownIcon className="size-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+      <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
     </CollapsibleTrigger>
   );
 };

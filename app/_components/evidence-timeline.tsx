@@ -69,8 +69,16 @@ function Row({ row }: { readonly row: EvidenceRow }) {
       className="scroll-mt-20 rounded-lg border border-border bg-card px-4 py-3 target:border-amber-500/60 target:bg-amber-500/5 target:ring-1 target:ring-amber-500/30"
       id={row.citationId}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-baseline gap-2">
+      {/* Stacked on a phone, two columns from sm up.
+
+          At 320 the row's content box is 238px and the fixed children — the source chip, the
+          citation id and the timestamp — measure 301px between them. The title was the only thing
+          able to shrink, so it was allocated zero width and spilled one word per line down six line
+          boxes. Giving the timestamp its own line above returns the full width to the title, and
+          letting the group wrap means the title drops below the chip and id rather than being
+          crushed beside them. */}
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+        <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
           <SourceChip row={row} />
           <a
             // Self-linking so an SE can copy the citation's url straight from the row it names, which
@@ -80,13 +88,21 @@ function Row({ row }: { readonly row: EvidenceRow }) {
           >
             {row.citationId}
           </a>
-          <span className="min-w-0 font-medium text-sm">{row.title}</span>
+          {/* break-words because a title is not guaranteed to contain a space in a useful place,
+              and an unbroken run is what puts a card into horizontal overflow. */}
+          <span className="min-w-0 break-words font-medium text-sm">{row.title}</span>
         </div>
         <span className="shrink-0 text-muted-foreground text-xs tabular-nums">{row.atLabel}</span>
       </div>
 
       {row.detail ? (
-        <p className="mt-1.5 line-clamp-3 text-muted-foreground text-sm">{row.detail}</p>
+        // A clamp counts lines, not characters, so the same three lines are about 370 characters on
+        // a desktop and about 100 on a phone. detail on a call row is the Gong transcript, which
+        // runs to a median of 479, so the phone was showing roughly a quarter of the record. Five
+        // lines narrow and three wide keeps the card compact without hiding most of the evidence.
+        <p className="mt-1.5 line-clamp-5 text-muted-foreground text-sm sm:line-clamp-3">
+          {row.detail}
+        </p>
       ) : null}
 
       {row.flags.length > 0 || row.url ? (

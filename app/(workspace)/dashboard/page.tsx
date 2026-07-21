@@ -71,7 +71,8 @@ function KpiSkeleton() {
 function TableSkeleton() {
   return (
     <>
-      <div className="mt-6 h-9 animate-pulse rounded-md border border-border bg-card" />
+      {/* Matches the filter row's 537px stack point, so nothing below shifts when it renders. */}
+      <div className="mt-6 h-20 animate-pulse rounded-md border border-border bg-card min-[537px]:h-9" />
       <div className="mt-3 h-[757px] animate-pulse rounded-xl border border-border bg-card" />
     </>
   );
@@ -81,7 +82,12 @@ function Kpi({ label, tone, value }: { label: string; tone?: "risk"; value: stri
   const valueClass = tone === "risk" ? "text-amber-700 dark:text-amber-400" : "text-foreground";
   return (
     <div className="rounded-xl border border-border bg-card p-4">
-      <div className="text-muted-foreground text-xs uppercase tracking-wide">{label}</div>
+      {/* Two lines of label reserved whatever the width. "Awaiting next step" is 123px set and the
+          tile interior is 96px at 320, so it wraps and the row grows — and it does that in two
+          separate bands, once in the 2-column layout and again at 640 where four tiles are
+          narrower than two were. A breakpoint could only fix one of them, and shortening the label
+          costs the meaning. Reserving the line costs 16px and cannot shift. */}
+      <div className="min-h-8 text-muted-foreground text-xs uppercase tracking-wide">{label}</div>
       <div className={`mt-1 font-semibold text-2xl tabular-nums ${valueClass}`}>{value}</div>
     </div>
   );

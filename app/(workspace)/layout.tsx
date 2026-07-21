@@ -1,6 +1,6 @@
 import { Suspense, type ReactNode } from "react";
 import { AppShell } from "@/app/_components/app-shell";
-import { CopilotDock } from "@/app/_components/copilot-dock";
+import { CopilotDockLazy } from "@/app/_components/copilot-dock-lazy";
 import { CopilotProvider } from "@/app/_components/copilot-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -16,7 +16,7 @@ export default function WorkspaceLayout({ children }: { readonly children: React
       <CopilotProvider>
         <AppShell>{children}</AppShell>
         <Suspense fallback={null}>
-          <CopilotDock />
+          <CopilotDockLazy />
         </Suspense>
       </CopilotProvider>
     </TooltipProvider>

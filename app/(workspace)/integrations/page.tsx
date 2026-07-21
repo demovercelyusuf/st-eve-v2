@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { BrandIcon, type BrandId } from "@/app/_components/brand-icon";
-import { readPatchIssueCounts } from "@/lib/linear/account-issues";
+import { pingLinear } from "@/lib/linear/account-issues";
 import { warehouseIdentity, warehouseQuery } from "@/lib/warehouse/client";
 
 export const metadata = { title: "Integrations" };
@@ -91,22 +91,31 @@ function Row({
     <article
       className={`rounded-xl border border-border bg-card p-5 ${status === "planned" ? "opacity-70" : ""}`}
     >
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+      {/* The icon is pulled out of the wrapping group and the rest wraps inside its own box.
+
+          ml-auto resolves per flex line, not per container, so once the name pushed the status pill
+          onto a second line the pill kept its auto margin and shot to the right edge of that line on
+          its own — with the icon stranded above it, alone. Below sm the pill just follows the text
+          in reading order; from sm up it goes back to the right, where there is room for it. */}
+      <div className="flex items-start gap-3">
         <BrandIcon brand={brand} className="size-6 shrink-0" />
-        <h2 className="font-semibold text-base">{name}</h2>
 
-        {/* The mechanism, beside the name. Which credential path a source uses is the architectural
-            claim this page is making, so it does not belong buried in body text. */}
-        <span
-          className={`inline-flex items-center rounded-full border px-2 py-0.5 font-medium text-[11px] ${METHOD_TONE[method]}`}
-        >
-          {METHOD_LABEL[method]}
-        </span>
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2">
+          <h2 className="font-semibold text-base">{name}</h2>
 
-        <span className="ml-auto inline-flex items-center gap-2 rounded-full bg-secondary px-2.5 py-1 font-medium text-secondary-foreground text-xs">
-          <StatusDot status={status} />
-          {statusLabel}
-        </span>
+          {/* The mechanism, beside the name. Which credential path a source uses is the architectural
+              claim this page is making, so it does not belong buried in body text. */}
+          <span
+            className={`inline-flex items-center rounded-full border px-2 py-0.5 font-medium text-[11px] ${METHOD_TONE[method]}`}
+          >
+            {METHOD_LABEL[method]}
+          </span>
+
+          <span className="inline-flex items-center gap-2 rounded-full bg-secondary px-2.5 py-1 font-medium text-secondary-foreground text-xs sm:ml-auto">
+            <StatusDot status={status} />
+            {statusLabel}
+          </span>
+        </div>
       </div>
 
       <p className="mt-2.5 text-muted-foreground text-sm">{what}</p>
@@ -121,8 +130,8 @@ async function IntegrationList() {
     warehouseQuery<{ n: string }>(`select count(*)::text as n from activity.dim_account`)
       .then((r) => ({ ok: true as const, accounts: Number(r.rows[0]?.n ?? 0) }))
       .catch(() => ({ ok: false as const, accounts: 0 })),
-    readPatchIssueCounts([]).then(
-      (r) => ({ connected: r.connected }),
+    pingLinear().then(
+      (connected) => ({ connected }),
       () => ({ connected: false }),
     ),
   ]);

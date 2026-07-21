@@ -23,7 +23,15 @@ export function EvidenceFocus({ linearConnected }: { readonly linearConnected: b
   const [missing, setMissing] = useState<string | null>(null);
 
   useEffect(() => {
-    const id = decodeURIComponent(window.location.hash.slice(1));
+    // decodeURIComponent throws URIError on a malformed escape like #%E0%A4%A, and this whole effect
+    // exists to handle a hash that does not resolve. Throwing on the way in would skip the scroll
+    // for every well-formed hash too, since the effect dies before reaching it.
+    let id: string;
+    try {
+      id = decodeURIComponent(window.location.hash.slice(1));
+    } catch {
+      id = window.location.hash.slice(1);
+    }
     if (!id) return;
 
     // Ids are used verbatim as DOM ids, so getElementById is the lookup. querySelector would need
@@ -52,7 +60,9 @@ export function EvidenceFocus({ linearConnected }: { readonly linearConnected: b
   return (
     <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2">
       <p className="text-amber-700 text-sm dark:text-amber-400">
-        <span className="font-mono">{missing}</span> is not on this page.
+        {/* break-all because this string came out of the url bar and nothing constrains it. An
+            unbroken 34 characters is enough to put the whole page into horizontal scroll at 320. */}
+        <span className="break-all font-mono">{missing}</span> is not on this page.
       </p>
       <p className="mt-0.5 text-muted-foreground text-xs">{reason}</p>
     </div>

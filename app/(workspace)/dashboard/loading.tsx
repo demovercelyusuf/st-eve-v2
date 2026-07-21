@@ -26,7 +26,9 @@ export default function DashboardLoading() {
           ))}
         </div>
 
-        <div className="mt-6 h-9 animate-pulse rounded-md border border-border bg-card" />
+        {/* Two rows below 537px, one above, matching the filter row's own breakpoint exactly. A
+            flat h-9 here was a 44px jump the moment the real controls rendered. */}
+        <div className="mt-6 h-20 animate-pulse rounded-md border border-border bg-card min-[537px]:h-9" />
         <div className="mt-3 h-[757px] animate-pulse rounded-xl border border-border bg-card" />
       </div>
     </div>

@@ -23,7 +23,15 @@ export const Conversation = ({ className, ...props }: ConversationProps) => (
 export type ConversationContentProps = ComponentProps<typeof StickToBottom.Content>;
 
 export const ConversationContent = ({ className, ...props }: ConversationContentProps) => (
-  <StickToBottom.Content className={cn("flex flex-col gap-8 p-4", className)} {...props} />
+  // scrollClassName, not className, and the distinction is the whole point: use-stick-to-bottom
+  // imperatively sets overflow on its own inner element, so the actual scroller is not the node
+  // className lands on. Styling overscroll there did nothing, and the dock's transcript chained its
+  // scroll to the page behind it once you hit the end.
+  <StickToBottom.Content
+    className={cn("flex flex-col gap-8 p-4", className)}
+    scrollClassName="overscroll-contain"
+    {...props}
+  />
 );
 
 export type ConversationEmptyStateProps = ComponentProps<"div"> & {

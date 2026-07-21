@@ -31,7 +31,13 @@ export type MessageContentProps = HTMLAttributes<HTMLDivElement>;
 export const MessageContent = ({ children, className, ...props }: MessageContentProps) => (
   <div
     className={cn(
-      "is-user:dark flex w-fit min-w-0 max-w-full flex-col gap-2 overflow-hidden text-sm",
+      // wrap-anywhere because an account id, a citation or a snake_case tool name has no space to
+      // break at, and every ancestor here is a flex item with min-width auto, so one long token sets
+      // the min-content width of the whole conversation column and the dock clips it. Measured in
+      // the dock at 320: 40 unbroken characters put the bubble 20px past the panel edge, 61 put it
+      // 187px past. Pasted URLs were already fine — the markdown renderer autolinks them and its
+      // link element carries this — which is exactly why it looked like it worked.
+      "is-user:dark flex w-fit min-w-0 max-w-full flex-col gap-2 overflow-hidden wrap-anywhere text-sm",
       "group-[.is-user]:ml-auto group-[.is-user]:rounded-2xl group-[.is-user]:bg-primary group-[.is-user]:px-4 group-[.is-user]:py-2.5 group-[.is-user]:text-primary-foreground",
       "group-[.is-assistant]:w-full group-[.is-assistant]:text-foreground",
       "group-data-[optimistic=true]:opacity-70",

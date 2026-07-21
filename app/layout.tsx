@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
 import type { ReactNode } from "react";
 import { THEME_INIT_SCRIPT } from "@/lib/themes";
@@ -61,6 +61,18 @@ export const metadata: Metadata = {
       "Full visibility into the technical progress of every account your team is responsible for.",
     type: "website",
   },
+};
+
+// Without viewportFit: "cover" the safe-area insets are all zero, and several places in this app
+// already pad with env(safe-area-inset-bottom) on the assumption that they are not. That was a
+// guard the code claimed and did not have: on a notched phone the composer and the dock sat under
+// the home indicator, and the one bare env() usage collapsed to a literal zero.
+//
+// interactiveWidget resizes the layout when the software keyboard opens, which is what keeps a
+// composer pinned to the bottom of a chat visible while you are typing into it.
+export const viewport: Viewport = {
+  viewportFit: "cover",
+  interactiveWidget: "resizes-content",
 };
 
 // The copilot is deliberately NOT mounted here. It lives in the workspace layout instead.

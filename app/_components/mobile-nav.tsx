@@ -2,6 +2,8 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { TourButton } from "./product-tour";
 import { SidebarNav } from "./sidebar-nav";
 import { Wordmark } from "./wordmark";
 
@@ -16,6 +18,11 @@ export function MobileNav() {
   const reduceMotion = useReducedMotion();
   const panelRef = useRef<HTMLElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+
+  // The drawer is portalled to the body, and this gates that until after hydration so the server and
+  // the first client render agree.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!open) return;
@@ -85,60 +92,78 @@ export function MobileNav() {
         </svg>
       </button>
 
-      <AnimatePresence>
-        {open ? (
-          <motion.div
-            animate={{ opacity: 1 }}
-            className="fixed inset-0 z-50 lg:hidden"
-            exit={{ opacity: 0 }}
-            initial={{ opacity: 0 }}
-            transition={{ duration }}
-          >
-            <button
-              aria-label="Close menu"
-              className="absolute inset-0 size-full bg-black/40"
-              onClick={() => setOpen(false)}
-              tabIndex={-1}
-              type="button"
-            />
-            <motion.aside
-              animate={{ x: 0 }}
-              aria-label="Workspace"
-              aria-modal="true"
-              className="absolute inset-y-0 left-0 flex w-72 max-w-[82vw] flex-col border-border border-r bg-card p-4 shadow-2xl focus:outline-none"
-              exit={{ x: "-100%" }}
-              initial={{ x: "-100%" }}
-              ref={panelRef}
-              role="dialog"
-              tabIndex={-1}
-              transition={{ duration, ease: "easeOut", type: "tween" }}
-            >
-              <div className="mb-4 flex items-center justify-between">
-                <Wordmark />
+      {/* Portalled to the body, and this is load-bearing rather than tidiness.
+
+          The shell header carries backdrop-blur-sm, and a backdrop-filter establishes a containing
+          block for every fixed-position descendant. Rendered in place, this drawer is a descendant
+          of that header, so `fixed inset-0` resolved against a 56px-tall box: the overlay measured
+          320x55, and the nav links painted below the panel, over the page, with no background
+          behind them. That is the entire mobile navigation on every route below lg.
+
+          The blur stays — it is what the header is supposed to look like. The drawer leaves. */}
+      {mounted &&
+        createPortal(
+          <AnimatePresence>
+            {open ? (
+              <motion.div
+                animate={{ opacity: 1 }}
+                className="fixed inset-0 z-50 lg:hidden"
+                exit={{ opacity: 0 }}
+                initial={{ opacity: 0 }}
+                transition={{ duration }}
+              >
                 <button
                   aria-label="Close menu"
-                  className="grid size-9 place-items-center rounded-lg text-muted-foreground hover:bg-accent/60 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+                  className="absolute inset-0 size-full bg-black/40"
                   onClick={() => setOpen(false)}
+                  tabIndex={-1}
                   type="button"
+                />
+                <motion.aside
+                  animate={{ x: 0 }}
+                  aria-label="Workspace"
+                  aria-modal="true"
+                  className="absolute inset-y-0 left-0 flex w-72 max-w-[82vw] flex-col border-border border-r bg-card p-4 shadow-2xl focus:outline-none"
+                  exit={{ x: "-100%" }}
+                  initial={{ x: "-100%" }}
+                  ref={panelRef}
+                  role="dialog"
+                  tabIndex={-1}
+                  transition={{ duration, ease: "easeOut", type: "tween" }}
                 >
-                  <svg aria-hidden="true" fill="none" height="16" viewBox="0 0 16 16" width="16">
-                    <path
-                      d="M3 3l10 10M13 3L3 13"
-                      stroke="currentColor"
-                      strokeLinecap="round"
-                      strokeWidth="1.6"
-                    />
-                  </svg>
-                </button>
-              </div>
-              <p className="mb-2 px-3 font-semibold text-[11px] text-muted-foreground tracking-wide">
-                WORKSPACE
-              </p>
-              <SidebarNav onNavigate={() => setOpen(false)} />
-            </motion.aside>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+                  <div className="mb-4 flex items-center justify-between">
+                    <Wordmark />
+                    <button
+                      aria-label="Close menu"
+                      className="grid size-9 place-items-center rounded-lg text-muted-foreground hover:bg-accent/60 focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+                      onClick={() => setOpen(false)}
+                      type="button"
+                    >
+                      <svg aria-hidden="true" fill="none" height="16" viewBox="0 0 16 16" width="16">
+                        <path
+                          d="M3 3l10 10M13 3L3 13"
+                          stroke="currentColor"
+                          strokeLinecap="round"
+                          strokeWidth="1.6"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                  <p className="mb-2 px-3 font-semibold text-[11px] text-muted-foreground tracking-wide">
+                    WORKSPACE
+                  </p>
+                  <SidebarNav onNavigate={() => setOpen(false)} />
+
+                  {/* The header's copy of this is hidden below sm, and nothing ever clears the
+                      tour-seen flag, so on the phone the demo is given from the tour was reachable
+                      exactly once. Here it is reachable on the device it is demoed on. */}
+                  <TourButton className="mt-4 w-full" onStart={() => setOpen(false)} />
+                </motion.aside>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>,
+          document.body,
+        )}
     </>
   );
 }

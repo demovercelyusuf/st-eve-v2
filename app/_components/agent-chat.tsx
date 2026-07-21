@@ -63,7 +63,15 @@ export function AgentChat() {
     // to carry its own.
     <div className="flex h-[calc(100dvh-3.5rem)]">
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
-      <header className="flex h-14 shrink-0 items-center justify-end gap-3 pr-4 pl-4">
+      {/* Nothing renders in here on an empty chat, and 56px of empty bar under the shell's own 56px
+          is a fifth of a small phone spent on chrome that says nothing. It collapses until there is
+          something to put in it. */}
+      <header
+        className={cn(
+          "flex shrink-0 items-center justify-end gap-3 px-4",
+          isEmpty ? "h-0" : "h-10 sm:h-14",
+        )}
+      >
         {isEmpty ? null : (
           <span className="flex min-w-0 items-center gap-2">
             <span className="truncate text-muted-foreground text-sm">{AGENT_NAME}</span>
@@ -107,8 +115,13 @@ export function AgentChat() {
         className={cn(
           "mx-auto w-full px-4 sm:px-6",
           isEmpty
-            ? "flex max-w-xl flex-1 flex-col items-center justify-center gap-8 pb-[10vh]"
-            : "max-w-3xl shrink-0 pb-6",
+            ? // min-h-0 is the whole fix and it is not optional: a flex item defaults to
+              // min-height:auto, so this refused to shrink below its content, pushed past the
+              // bottom of an overflow-hidden main, and took the composer with it. At 320x568 the
+              // send button sat entirely below the clip line; in landscape the textarea went too,
+              // leaving no way to type at all. Centred once there is room to centre.
+              "flex max-w-xl min-h-0 flex-1 flex-col items-center justify-end gap-4 overflow-y-auto pb-4 sm:justify-center sm:gap-8 sm:pb-[10vh]"
+            : "max-w-3xl shrink-0 pb-[max(1.5rem,env(safe-area-inset-bottom))]",
         )}
       >
         {isEmpty ? (
@@ -141,11 +154,13 @@ export function AgentChat() {
       </div>
       </main>
 
-      {/* Wider than the dock's rail because there is room for it here, and this is the surface
-          someone lingers on. Hidden below lg for the same reason it is hidden below sm in the dock. */}
+      {/* Held back to xl because the shell's sidebar also appears at lg, and both arriving together
+          took the conversation column from 768px to 512px — its narrowest anywhere above 640. It
+          widens again at 2xl where there is room for the extra rail without charging the reading
+          column for it. */}
       <ModelRouter
         busy={agent.status === "submitted" || agent.status === "streaming"}
-        className="hidden w-60 lg:flex"
+        className="hidden w-56 xl:flex 2xl:w-60"
         messages={agent.data.messages}
       />
     </div>

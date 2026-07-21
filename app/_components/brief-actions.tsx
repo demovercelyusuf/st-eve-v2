@@ -62,7 +62,11 @@ export function BriefActions({ brief }: { readonly brief: RenderableBrief }) {
         type="button"
       >
         <BrandIcon brand="salesforce" className="size-4 grayscale" />
-        Update Salesforce SE Notes
+        {/* The full label needs 273px against a 238px line at 320 and breaks after "SE", leaving the
+            icon and the Q4 badge centred against two lines of text. It fits from about 355px up,
+            hence the exact threshold rather than sm. */}
+        <span className="min-[360px]:hidden">Salesforce SE Notes</span>
+        <span className="hidden min-[360px]:inline">Update Salesforce SE Notes</span>
         <span
           className="rounded-full bg-secondary px-1.5 py-0.5 font-semibold text-[10px] text-secondary-foreground tracking-wide"
           id="sfdc-soon"

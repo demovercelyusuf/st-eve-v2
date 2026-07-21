@@ -98,6 +98,10 @@ async function withBudget<T>(ms: number, run: (signal: AbortSignal) => Promise<T
 // establish it, so a dashboard that cannot reach Linear is a dashboard with one column missing rather
 // than an error page.
 export async function readPatchIssueCounts(accountIds: string[]): Promise<PatchIssueCounts> {
+  // No accounts means nothing to ask about, so there is nothing to report as incomplete. This is
+  // correct for the dashboard, which is the only caller that reaches it — with an empty patch there
+  // is no column to fill. It is not a claim that Linear is reachable, and the integrations page used
+  // to read it as one. See pingLinear below.
   if (accountIds.length === 0) return { connected: true, complete: true, openByAccount: {} };
 
   const key = [...accountIds].sort().join(",");
@@ -114,4 +118,38 @@ export async function readPatchIssueCounts(accountIds: string[]): Promise<PatchI
   const value: PatchIssueCounts = counts ? { connected: true, ...counts } : NOT_CONSULTED;
   memo = { key, at: Date.now(), value };
   return value;
+}
+
+// Is the Linear grant actually good right now?
+//
+// This exists because the integrations page had no way to ask. It called readPatchIssueCounts([]),
+// which short-circuits on an empty list and returns connected: true without a network call, so the
+// Linear row rendered "connected" unconditionally — including with the grant revoked — on the one
+// page whose entire claim is that status is measured rather than declared. The rejection handler
+// beside that call was unreachable code.
+//
+// Minting the token is the check. It is what actually fails when a grant is revoked or expired, and
+// it is cheap enough to do on a page load. Under the same budget as everything else here, because a
+// hung token mint should degrade this row, not the page.
+// Asking whether a grant is valid right now is dynamic by definition — the answer depends on when
+// you ask — and the budget below reads the clock to enforce its timeout, which Cache Components
+// rejects in a render it still believes is prerenderable. Declared here for the same reason and in
+// the same way the warehouse pool declares it, dynamic import and swallowed failure included,
+// because this also runs outside a Next render.
+//
+// Worth noting that the bug this function replaces was holding the build up: the old empty-list
+// short-circuit returned before touching a clock, so the page prerendered by never actually
+// checking anything.
+export async function pingLinear(): Promise<boolean> {
+  try {
+    const { connection } = await import("next/server");
+    await connection();
+  } catch {
+    // Not inside a Next render. Nothing to declare.
+  }
+
+  const token = await withBudget(BUDGET_MS, () =>
+    getToken(LINEAR_CONNECTOR, { subject: { type: "app" } }),
+  ).catch(() => null);
+  return token !== null;
 }
