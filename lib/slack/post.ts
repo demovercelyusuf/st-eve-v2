@@ -45,7 +45,11 @@ async function slack<T>(token: string, method: string, init?: RequestInit): Prom
 // silently points at nothing after someone archives a channel, and the app already knows where it
 // belongs: Slack tells us which channels this bot was invited to. SLACK_BRIEF_CHANNEL exists as an
 // override for the case where the bot sits in several and the choice matters.
-export async function resolveChannel(token: string): Promise<SlackChannel | null> {
+type ChannelLookup =
+  | { ok: true; channel: SlackChannel }
+  | { ok: false; reason: string };
+
+export async function resolveChannel(token: string): Promise<ChannelLookup> {
   const preferred = process.env.SLACK_BRIEF_CHANNEL?.replace(/^#/, "");
 
   const json = await slack<{ ok: boolean; error?: string; channels?: SlackChannel[] }>(
@@ -53,14 +57,43 @@ export async function resolveChannel(token: string): Promise<SlackChannel | null
     "conversations.list?types=public_channel,private_channel&exclude_archived=true&limit=200",
     { method: "GET" },
   );
-  if (!json.ok) return null;
+
+  // Three failures that look identical from the outside and are fixed in three different places, so
+  // they are reported separately. Collapsing them into one "could not post" is how somebody spends
+  // an afternoon inviting a bot to channels when the actual problem was a missing scope.
+  if (!json.ok) {
+    return json.error === "missing_scope"
+      ? {
+          ok: false,
+          reason:
+            "The Slack app is missing the channels:read scope, so it cannot see which channels it is in.",
+        }
+      : { ok: false, reason: `Slack refused the channel lookup: ${json.error ?? "unknown error"}.` };
+  }
 
   const channels = json.channels ?? [];
   const joined = channels.filter((c) => c.is_member);
+
   if (preferred) {
-    return joined.find((c) => c.name === preferred) ?? channels.find((c) => c.name === preferred) ?? null;
+    const match = joined.find((c) => c.name === preferred) ?? channels.find((c) => c.name === preferred);
+    if (match) return { ok: true, channel: match };
+    return {
+      ok: false,
+      reason: `SLACK_BRIEF_CHANNEL is set to #${preferred}, and the app cannot see a channel by that name.`,
+    };
   }
-  return joined[0] ?? null;
+
+  if (joined.length === 0) {
+    return {
+      ok: false,
+      reason:
+        channels.length === 0
+          ? "The app can see no channels at all in this workspace."
+          : `The app can see ${channels.length} channels but has not been invited to any. Run /invite @Steve-v2 in the channel you want briefs in.`,
+    };
+  }
+
+  return { ok: true, channel: joined[0] };
 }
 
 export async function postBriefToSlack(brief: RenderableBrief): Promise<PostResult> {
@@ -76,13 +109,9 @@ export async function postBriefToSlack(brief: RenderableBrief): Promise<PostResu
     };
   }
 
-  const channel = await resolveChannel(token);
-  if (!channel) {
-    return {
-      ok: false,
-      reason: "Steve is not a member of any Slack channel yet. Invite the app to a channel first.",
-    };
-  }
+  const lookup = await resolveChannel(token);
+  if (!lookup.ok) return lookup;
+  const channel = lookup.channel;
 
   // The same card the agent posts from a mention, built by the same function. Two renderers for one
   // artifact is how the web and Slack versions of a brief quietly stop agreeing.
