@@ -25,3 +25,6 @@ dist
 tfplan
 *.tfvars
 !*.tfvars.example
+
+# Presenter script — local only, never pushed
+docs/DEMO-SCRIPT.md
