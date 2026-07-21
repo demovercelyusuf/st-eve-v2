@@ -1,9 +1,11 @@
 import { defineTool } from "eve/tools";
 import { BriefInput } from "../../lib/brief/schema";
 import { recordBriefRun } from "../../lib/appstore/runs";
+import { explainRefusal, resolveAccountForCaller } from "../../lib/auth/access";
+import { callerFromSession } from "../../lib/auth/scope";
 import { enforceCitations } from "../../lib/grounding/gate";
 import { getSalesforceAccount } from "../../lib/salesforce/adapter";
-import { findAccountId, getKnownActivityIds } from "../../lib/warehouse/repository";
+import { getKnownActivityIds } from "../../lib/warehouse/repository";
 
 // The one and only way to deliver a brief. The model provides its claims here; this tool runs the
 // deterministic grounding gate over them, drops anything not backed by a real activity, persists the
@@ -15,10 +17,19 @@ export default defineTool({
     "Emit the finished weekly brief. This is the ONLY way to deliver a brief; do not write the brief as plain text. Provide the summary, next steps, and stage read as discrete claims, each with the activity ids that back it. The gate drops any claim not backed by a real activity id and returns it under needsReview. Ground every claim or it will not ship.",
   inputSchema: BriefInput,
   async execute(brief, ctx) {
-    const accountId = await findAccountId(brief.account);
-    if (!accountId) {
-      return { shipped: false, reason: `No account matches "${brief.account}".` };
+    // Checked again here rather than trusted from the read tools. A brief is the thing that actually
+    // leaves the building, so the last gate before delivery re-establishes entitlement instead of
+    // assuming an earlier tool call did.
+    const caller = callerFromSession(ctx.session);
+    if (!caller) {
+      return { shipped: false, reason: "Sign in to run a brief." };
     }
+
+    const resolved = await resolveAccountForCaller(caller, brief.account);
+    if (!resolved.ok) {
+      return { shipped: false, reason: explainRefusal(resolved) };
+    }
+    const accountId = resolved.account.accountId;
 
     // Ground against both the warehouse activity ids (ZD-, GONG-, USG-) and the live Salesforce
     // record ids (the opportunity and its contacts), since a brief legitimately cites CRM facts,
