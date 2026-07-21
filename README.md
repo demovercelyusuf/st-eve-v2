@@ -9,11 +9,13 @@ Slack and it reconstructs an account into a cited brief: where the evaluation ac
 technically blocked, and what to do next.
 
 It runs on Vercel and reads across a boundary into three systems that stay where they are: an
-account-activity warehouse in AWS (Gong calls, Zendesk tickets, product usage), Salesforce, and Linear
-for engineering's view of the account. Every claim carries the record id that backs it, and anything
-that cannot be grounded does not ship.
+account-activity warehouse in AWS (Gong call transcripts, weekly product usage), Salesforce for the
+deal, and Linear for every issue engineering is carrying. Every claim carries the record id that backs
+it, and anything that cannot be grounded does not ship.
 
 **Live demo:** https://st-eve-v2.vercel.app
+
+**Solutions Architect submission:** [`docs/SUBMISSION.md`](docs/SUBMISSION.md) covers the problem, the boundary, the Vercel choices and their trade-offs, the rollout plan, success measures, known limitations, and how the AI behaviour is validated.
 
 ## The problem
 
