@@ -126,7 +126,7 @@ This is the process the repo is built under, not a proposal.
 
 That matters more than tidiness, because the trust boundary is now a diff. Who can mint a warehouse credential, under which claims, for how long, is four resources rather than the state of a console somebody clicked. A security reviewer reads the change, not the outcome.
 
-Writing the policy down surfaced the binding that matters: Vercel signs every tenant's OIDC token with the same key, so a role bound on the issuer alone would accept any Vercel customer's token. The roles bind on the immutable owner and project ids rather than the slugs, which get rewritten on rename.
+Writing the policy down surfaced the binding that matters. Vercel signs every tenant's OIDC token with the same key — the same `kid` is served under the global issuer and under every team issuer — so a valid signature proves only that Vercel issued the token to somebody, never to whom. Under the global issuer, `iss` is identical for every customer and binding it is not a tenancy check at all; a team issuer does name the team, but through a slug Vercel rewrites on rename. So the roles bind on `owner_id` and `project_id`, which are immutable, and treat the issuer as a check on a mutable string rather than the boundary itself.
 
 **Preview.** Every push gets a preview deployment against the same database, under a separate Vault role bound to the preview environment with a shorter TTL. Worth being precise about what that does not buy: both roles read the same instance, so it separates credentials rather than data.
 

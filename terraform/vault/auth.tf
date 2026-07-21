@@ -17,7 +17,14 @@ resource "vault_jwt_auth_backend" "vercel" {
 //
 //   1. Vercel signs every tenant's token with the same key. An identical `kid` appears across the
 //      global issuer and every team issuer, so a valid signature proves only "issued by Vercel to
-//      somebody". A role bound on issuer alone would accept any Vercel customer's token anywhere.
+//      somebody" — never which somebody.
+//
+//      Worth being precise about what that does and does not mean for the issuer, because the
+//      loose version of this claim is wrong. Vercel publishes a global issuer and per-team
+//      issuers. Under the global issuer, `iss` is byte-identical for every customer, so binding it
+//      is not a tenancy check at all. This backend binds a team issuer, so `iss` does name the
+//      team — but it names it with the team *slug*, which is trap 2. Binding the issuer here is a
+//      real check; it is just a check on a mutable string.
 //   2. The `owner` and `project` claims carry slugs, which Vercel rewrites on rename. Binding those
 //      gives you a rule that silently stops matching one day, which is worse than one that never
 //      matched at all.
