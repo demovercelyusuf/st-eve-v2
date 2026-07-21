@@ -196,6 +196,12 @@ What I would tell the customer before kickoff.
 
 **There is no cache invalidation path.** `updateTag` only works inside Server Actions and this app has none. Cached surfaces expire on their `cacheLife` profile rather than on an event. A pipeline-completion webhook is the right trigger and it is not built.
 
+**Sessions never end, and there is no retention policy.** An eve session is a durable Vercel Workflow. A turn finishes with `turn.completed` and the session then parks on `session.waiting`, holding a continuation token so a follow-up resumes the same conversation with its full history. Nothing closes it. After a day of testing this deployment had fourteen workflows open.
+
+Parked is not running: the runtime suspends the workflow and holds no compute until the next input arrives, so the cost is negligible and the durability claim is exactly what those open runs demonstrate. The problem is retention, not spend. A parked session holds conversation history about a customer's accounts, and at 200 SEs those accumulate indefinitely with no expiry.
+
+**The intended policy is a 15 minute idle TTL**, after which a session ends and its history is discarded. It is not implemented, because eve 0.25.2 exposes no way to end a session: the channel routes create a session, send a follow-up, cancel the in-flight turn and stream events, and cancelling a turn explicitly leaves the session accepting the next message. `session.completed` exists as an event but not as an author-facing action. Until the framework offers one, the honest options are an out-of-band sweeper against the Workflows API or an application-level record of session age that refuses to resume one past its TTL. Neither is built.
+
 **The gate catches unbacked claims, not bad judgement.** It proves a citation resolves to a real record. It cannot tell you the model read that record correctly. That limit is why Steve proposes and never writes.
 
 ---

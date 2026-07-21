@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { Nav } from "@/app/_components/nav";
 import { getRunCosts } from "@/lib/appstore/spend";
 
 export const metadata = { title: "Per-run spend" };
@@ -12,8 +11,7 @@ function money(n: number): string {
 // behind the same boundary, so the heading and the caveat about what this number is do not wait on it.
 export default function SpendPage() {
   return (
-    <main className="min-h-dvh bg-background text-foreground">
-      <Nav active="spend" />
+    <div>
       <div className="mx-auto max-w-5xl px-6 py-10">
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -32,7 +30,7 @@ export default function SpendPage() {
           <SpendTable />
         </Suspense>
       </div>
-    </main>
+    </div>
   );
 }
 

@@ -4,6 +4,7 @@ import { Suspense, type ReactNode } from "react";
 import { CopilotDock } from "@/app/_components/copilot-dock";
 import { CopilotProvider } from "@/app/_components/copilot-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { THEME_INIT_SCRIPT } from "@/lib/themes";
 import { cn } from "@/lib/utils";
 import "./globals.css";
 
@@ -54,7 +55,15 @@ export const metadata: Metadata = {
 // prerendered layout, and neither reads request-time data, so the shell stays cacheable.
 export default function RootLayout({ children }: { readonly children: ReactNode }) {
   return (
-    <html className={cn(sans.variable, mono.variable)} lang="en">
+    <html className={cn(sans.variable, mono.variable)} lang="en" suppressHydrationWarning>
+      <head>
+        {/* Sets data-theme before first paint so the page never flashes the wrong skin. It has to
+            be inline and render-blocking to run in time, which is why it is hand-written and tiny
+            rather than imported. suppressHydrationWarning on html is the cost: the server cannot
+            know the theme, so the attribute legitimately differs on the first client pass. */}
+        {/** biome-ignore lint/security/noDangerouslySetInnerHtml: inline theme boot, no user input */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body>
         <TooltipProvider>
           <CopilotProvider>

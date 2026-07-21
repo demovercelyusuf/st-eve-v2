@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { Nav } from "@/app/_components/nav";
 import { PatchTable, type PatchTableRow } from "@/app/_components/patch-table";
 import { getCaller } from "@/lib/auth/server";
 import { getPatchOverview } from "@/lib/dashboard/patch";
@@ -17,8 +16,7 @@ export const metadata = { title: "Your patch" };
 // one while it happens.
 export default function DashboardPage() {
   return (
-    <main className="min-h-dvh bg-background text-foreground">
-      <Nav active="patch" />
+    <div>
       <div className="mx-auto max-w-6xl px-6 py-8">
         <div>
           <h1 className="font-semibold text-2xl tracking-tight">Your patch</h1>
@@ -33,7 +31,7 @@ export default function DashboardPage() {
           <PatchBody />
         </Suspense>
       </div>
-    </main>
+    </div>
   );
 }
 
