@@ -50,7 +50,12 @@ export default function Page() {
       </header>
 
       <main className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 pb-4 text-center">
-        <Rise>
+        {/* Steve introduces the page rather than trailing it. He is the thing people recognise
+            across the app, so he belongs above the line that names what he is, not below the proof.
+            Sized down from the old hero treatment because he now sits on top of the whole stack. */}
+        <FloatingMascot size={92} />
+
+        <Rise className="mt-5">
           <p className="flex items-center justify-center gap-2 font-medium text-muted-foreground text-sm">
             <span aria-hidden className="inline-block size-1.5 rounded-full bg-emerald-500" />
             The vercelian copilot for the technical win
@@ -89,19 +94,15 @@ export default function Page() {
             sentence or the proof, and the sentence is the one doing the work.
 
             Two thresholds because they cost different amounts of height. The marks are one row and
-            appear early; the card is the real artifact and only shows where there is genuinely
-            room for it. */}
-        <Rise className="mt-8 hidden [@media(min-height:640px)]:flex" delay={240}>
+            appear early; the card is the real artifact and only shows where there is genuinely room
+            for it, which is now higher because the mascot sits above the fold rather than below it. */}
+        <Rise className="mt-8 hidden [@media(min-height:660px)]:flex" delay={240}>
           <SourceMarks />
         </Rise>
 
-        <Rise className="mt-7 hidden w-full justify-center [@media(min-height:820px)]:flex" delay={300}>
+        <Rise className="mt-7 hidden w-full justify-center [@media(min-height:900px)]:flex" delay={300}>
           <SlackPreview />
         </Rise>
-
-        <div className="mt-6 hidden [@media(min-height:640px)_and_(max-height:819px)]:block">
-          <FloatingMascot size={88} />
-        </div>
       </main>
 
       <footer className="shrink-0 px-6 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-center">
