@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { UseEveAgentStatus } from "eve/react";
@@ -119,25 +121,34 @@ export function CopilotDock() {
     return (
       <button
         aria-haspopup="dialog"
-        className="fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-50 flex h-11 items-center gap-2.5 rounded-full border border-border bg-card pr-2.5 pl-4 font-medium text-sm shadow-lg transition-colors hover:border-foreground/20"
+        aria-label="Ask Steve"
+        className="press fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-50 flex items-center gap-2 rounded-full pr-1 pl-1 transition-transform hover:scale-105"
         onClick={open}
         ref={launcherRef}
         type="button"
       >
-        <span
-          aria-hidden
-          className={cn(
-            "inline-block size-2 rounded-full",
-            hasUnread ? "bg-amber-500" : "bg-emerald-500",
-          )}
-        />
-        Ask Steve
+        {/* Steve himself is the launcher, floating until you need him. A pill saying "Ask Steve"
+            works and reads like every other support widget; the mascot is the thing people
+            recognise across the app, so it is what gets tapped. */}
+        <span className="relative inline-block float">
+          <Image
+            alt=""
+            className="size-14 object-contain drop-shadow-xl sm:size-16"
+            height={64}
+            src="/steve.png"
+            width={64}
+          />
+          <span
+            aria-hidden
+            className={cn(
+              "absolute right-0.5 bottom-0.5 inline-block size-3 rounded-full border-2 border-background",
+              hasUnread ? "bg-amber-500" : "bg-emerald-500",
+            )}
+          />
+        </span>
         {/* The dot is the only thing marking a reply that landed while the panel was shut, so it has
             to say so out loud for anyone not looking at it. */}
-        {hasUnread ? <span className="sr-only">, new reply waiting</span> : null}
-        <kbd className="hidden rounded border border-border px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:inline">
-          ⌘K
-        </kbd>
+        {hasUnread ? <span className="sr-only">New reply waiting</span> : null}
       </button>
     );
   }

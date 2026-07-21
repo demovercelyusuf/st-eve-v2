@@ -29,6 +29,10 @@ const RETIRED_PREFIXES = ["ZD-"];
 
 const SOURCES = [
   "agent/instructions.md",
+  // The landing page shows a sample brief. It shipped with five invented citation ids on a product
+  // whose entire claim is that a citation resolves, which is the most expensive place to get this
+  // wrong: it is the first thing a reviewer reads.
+  "app/page.tsx",
   "agent/tools/read_account_activity.ts",
   "agent/tools/read_salesforce.ts",
   "agent/tools/emit_brief.ts",
