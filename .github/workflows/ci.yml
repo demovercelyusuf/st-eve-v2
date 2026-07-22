@@ -28,8 +28,9 @@ jobs:
       - name: Test
         run: node_modules/.bin/vitest run
 
+      # No database URLs here on purpose. There is no Postgres on the runner, so a placeholder
+      # localhost URL does not stand in for one: it only gets scripts/migrate.ts far enough to try
+      # connecting, and the build then dies on CREATE SCHEMA. Left unset, the migration skips the way
+      # it is written to and next build prerenders every page without touching either database.
       - name: Build
         run: pnpm build
-        env:
-          WAREHOUSE_DATABASE_URL: postgres://ci:ci@localhost:5432/ci
-          APPSTORE_DATABASE_URL: postgres://ci:ci@localhost:5432/ci
