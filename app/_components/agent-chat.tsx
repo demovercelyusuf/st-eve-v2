@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { track } from "@/lib/analytics";
+import type { EveMessage } from "eve/react";
 import { AlertCircleIcon } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Conversation,
   ConversationContent,
@@ -32,13 +33,32 @@ const OPENERS = [
   "Brief me on Atlas Manufacturing.",
 ];
 
+// Stable identity, so the pre-hydration render does not hand a fresh array to the transcript on every
+// pass and invalidate everything downstream of it.
+const EMPTY_MESSAGES: readonly EveMessage[] = [];
+
 export function AgentChat() {
-  // The session comes from the root layout rather than from a useEveAgent call here, so this page and
-  // the floating dock are one conversation. An SE who asks in the dock and then opens the full view
+  // The session comes from the workspace layout rather than from a useEveAgent call here, so this page
+  // and the floating dock are one conversation. An SE who asks in the dock and then opens the full view
   // is resizing a window, not starting again.
   const { agent, markRead } = useCopilot();
   const isBusy = agent.status === "submitted" || agent.status === "streaming";
-  const isEmpty = agent.data.messages.length === 0;
+
+  // A restored conversation is only knowable in a browser, and this page is prerendered. Reading it
+  // straight through would mean the first client render disagreed with the static shell, which React
+  // resolves by throwing the subtree away and rendering it again, with a hydration error to match.
+  //
+  // So the shell renders exactly what it always did, an empty chat, and the transcript arrives on the
+  // next paint. The dock does not need this because it is already ssr: false; making this page
+  // client-only would fix it too, at the cost of the whole shell, which is the one thing on /chat that
+  // is worth prerendering.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  const messages = hydrated ? agent.data.messages : EMPTY_MESSAGES;
+  const isEmpty = messages.length === 0;
 
   // This page is the transcript at full size, so nothing on it can be unread. Without this the dock's
   // launcher would still be wearing an unread dot after the SE navigated away from here.
@@ -99,12 +119,10 @@ export function AgentChat() {
       {isEmpty ? null : (
         <Conversation className="min-h-0 flex-1">
           <ConversationContent className="mx-auto w-full max-w-3xl gap-6 px-4 py-6 sm:px-6">
-            {agent.data.messages.map((message, index) => (
+            {messages.map((message, index) => (
               <AgentMessage
                 canRespond={!isBusy}
-                isStreaming={
-                  agent.status === "streaming" && index === agent.data.messages.length - 1
-                }
+                isStreaming={agent.status === "streaming" && index === messages.length - 1}
                 key={message.id}
                 message={message}
                 onInputResponses={(inputResponses) => agent.send({ inputResponses })}
@@ -165,7 +183,7 @@ export function AgentChat() {
       <ModelRouter
         busy={agent.status === "submitted" || agent.status === "streaming"}
         className="hidden w-56 xl:flex 2xl:w-60"
-        messages={agent.data.messages}
+        messages={messages}
       />
     </div>
   );
