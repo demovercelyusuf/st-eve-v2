@@ -80,6 +80,12 @@ export const Reasoning = memo(
     const [hasAutoClosed, setHasAutoClosed] = useState(false);
     const startTimeRef = useRef<number | null>(null);
 
+    // Whether the reader has taken a position on this block. Both effects below drive `isOpen`, and
+    // without this the component has no way to tell "nobody has touched it" from "the reader just
+    // closed it", so it treats a deliberate close as a state to correct. A ref rather than state on
+    // purpose: it must not itself trigger a render, or it becomes the next thing that re-runs them.
+    const userToggledRef = useRef(false);
+
     // Track when streaming starts and compute duration
     useEffect(() => {
       if (isStreaming) {
@@ -93,27 +99,44 @@ export const Reasoning = memo(
       }
     }, [isStreaming, setDuration]);
 
-    // Auto-open when streaming starts (unless explicitly closed)
+    // Auto-open when streaming starts, unless the author or the reader has already said otherwise.
+    //
+    // `isOpen` is deliberately NOT a dependency. It used to be, and that is what made the chevron
+    // look broken: closing the block changed a value this effect watched, the effect re-ran, saw a
+    // closed block that was still streaming, and re-opened it. React flushes that before paint for a
+    // discrete event, so the close never even rendered. The click was working the whole time; it was
+    // being reverted in the same commit. This effect should run on a streaming transition, which is
+    // the thing it is actually about, not on every open and close.
     useEffect(() => {
-      if (isStreaming && !isOpen && !isExplicitlyClosed) {
+      if (isStreaming && !isExplicitlyClosed && !userToggledRef.current) {
         setIsOpen(true);
       }
-    }, [isStreaming, isOpen, setIsOpen, isExplicitlyClosed]);
+    }, [isStreaming, isExplicitlyClosed, setIsOpen]);
 
-    // Auto-close when streaming ends (once only, and only if it ever streamed)
+    // Auto-close once, shortly after streaming ends.
+    //
+    // `isOpen` is dropped here for a second, distinct reason. `hasAutoClosed` only latches inside the
+    // timer, so on a surface where the block never auto-opened the timer never ran and the latch was
+    // never set: every expand the reader performed re-armed a 1000ms timer that slammed it shut
+    // again. That is the same complaint as the dead chevron wearing different clothes, and it lived
+    // in the collapsed-by-default dock rather than on the full page.
     useEffect(() => {
-      if (hasEverStreamedRef.current && !isStreaming && isOpen && !hasAutoClosed) {
-        const timer = setTimeout(() => {
-          setIsOpen(false);
-          setHasAutoClosed(true);
-        }, AUTO_CLOSE_DELAY);
-
-        return () => clearTimeout(timer);
+      if (!hasEverStreamedRef.current || isStreaming || hasAutoClosed || userToggledRef.current) {
+        return;
       }
-    }, [isStreaming, isOpen, setIsOpen, hasAutoClosed]);
+      const timer = setTimeout(() => {
+        setIsOpen(false);
+        setHasAutoClosed(true);
+      }, AUTO_CLOSE_DELAY);
+
+      return () => clearTimeout(timer);
+    }, [isStreaming, hasAutoClosed, setIsOpen]);
 
     const handleOpenChange = useCallback(
       (newOpen: boolean) => {
+        // Once the reader has chosen, the automation stops. Reopening a block someone just closed is
+        // worse than leaving it in the wrong state, because it reads as the control not working.
+        userToggledRef.current = true;
         setIsOpen(newOpen);
       },
       [setIsOpen],

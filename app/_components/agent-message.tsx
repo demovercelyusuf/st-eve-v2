@@ -73,6 +73,10 @@ export function AgentMessage({
     -1,
   );
 
+  // The trailing part of a turn that is still running is the only part anything can still be
+  // happening to. Everything above it has been overtaken: the model moved on and produced this.
+  const lastPartIndex = message.parts.length - 1;
+
   return (
     <Message
       data-optimistic={message.metadata?.optimistic ? "true" : undefined}
@@ -85,6 +89,7 @@ export function AgentMessage({
             compact={compact}
             key={partKey(part, index)}
             onInputResponses={onInputResponses}
+            isLive={isStreaming && message.role === "assistant" && index === lastPartIndex}
             part={part}
             showCaret={isStreaming && message.role === "assistant" && index === lastTextIndex}
           />
@@ -97,12 +102,15 @@ export function AgentMessage({
 function AgentMessagePart({
   canRespond,
   compact,
+  isLive,
   onInputResponses,
   part,
   showCaret,
 }: {
   readonly canRespond: boolean;
   readonly compact: boolean;
+  /** This part is the trailing part of a turn that is still running. */
+  readonly isLive: boolean;
   readonly onInputResponses: (responses: readonly AgentInputResponse[]) => void | Promise<void>;
   readonly part: EveMessagePart;
   readonly showCaret: boolean;
@@ -119,8 +127,16 @@ function AgentMessagePart({
     case "reasoning":
       // Open on the full page, where there is room to read it. In the dock an expanded reasoning
       // block would push the answer itself out of view, so it starts collapsed and stays available.
+      //
+      // Bounded by isLive rather than trusting part.state alone, and that is not belt and braces.
+      // eve moves a reasoning part off "streaming" only when it receives reasoning.completed for
+      // that step: turn.completed writes message metadata and nothing else, and turn.failed returns
+      // the state untouched. So a single dropped event pins the part at "streaming" permanently, and
+      // the block shimmers "Thinking..." under a finished brief for as long as the page is open.
+      // A part with other parts after it, or a turn that has stopped, is not thinking by definition,
+      // which is a fact this surface can establish on its own without waiting to be told.
       return (
-        <Reasoning defaultOpen={!compact} isStreaming={part.state === "streaming"}>
+        <Reasoning defaultOpen={!compact} isStreaming={part.state === "streaming" && isLive}>
           <ReasoningTrigger />
           <ReasoningContent>{part.text}</ReasoningContent>
         </Reasoning>
