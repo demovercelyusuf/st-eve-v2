@@ -1,5 +1,5 @@
-import { AgentChat } from "@/app/_components/agent-chat";
+import { AgentChatLazy } from "@/app/_components/agent-chat-lazy";
 
 export default function ChatPage() {
-  return <AgentChat />;
+  return <AgentChatLazy />;
 }
