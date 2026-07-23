@@ -173,7 +173,14 @@ const defaultGetThinkingMessage = (isStreaming: boolean, duration?: number) => {
   if (duration === undefined) {
     return <p>Thought for a few seconds</p>;
   }
-  return <p>Thought for {duration} seconds</p>;
+  // "1 seconds" is the most common reading of this label, because a step that only routes to a tool
+  // call is genuinely about a second long. Same fix, and same reason, as groundingFooter in
+  // lib/brief/render.ts: the singular case is the one people actually see.
+  return (
+    <p>
+      Thought for {duration} {duration === 1 ? "second" : "seconds"}
+    </p>
+  );
 };
 
 export const ReasoningTrigger = memo(
