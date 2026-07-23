@@ -49,12 +49,15 @@ export function ThemeSwitcher() {
             title={t.label}
             type="button"
           >
+            {/* Split rather than filled: the page background on one half, the accent on the other.
+                A single fill has to choose, and whichever it chooses is a lie about the other. The
+                inset ring is what keeps the near-white halves from disappearing on a light skin. */}
             <span
               className={[
                 "block size-4 rounded-full ring-1 ring-border ring-inset",
                 active ? "ring-2 ring-foreground" : "",
               ].join(" ")}
-              style={{ background: t.swatch }}
+              style={{ background: `linear-gradient(135deg, ${t.bg} 0 50%, ${t.accent} 50% 100%)` }}
             />
           </button>
         );

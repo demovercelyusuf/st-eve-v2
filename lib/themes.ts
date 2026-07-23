@@ -10,19 +10,33 @@ export const THEME_STORAGE_KEY = "steve-theme";
 
 export type ThemeId = "mono" | "dark" | "warm" | "expressive";
 
+// Two colours per skin, not one, and the reason is a bug this shape makes impossible.
+//
+// The dot used to carry only a "signature colour". For three skins that happened to read as the page
+// you would get, so nobody noticed it was the wrong promise. For `dark` the signature colour is its
+// accent, a pale violet, while the page it applies is near-black — so the palest dot in the row gave
+// you the darkest theme, and the vivid violet next to it gave you a white one. The dot has to answer
+// "what will the page look like" first, because that is the question someone is asking when they
+// click it.
+//
+// Both values mirror globals.css. `bg` is the theme's --background and `accent` is its --primary,
+// converted to hex because a swatch has to render a skin that is not the one currently applied, so
+// it cannot read the live custom properties.
 export type Theme = {
   id: ThemeId;
   label: string;
   blurb: string;
-  /** The dot in the switcher: each skin's signature colour. */
-  swatch: string;
+  /** The page background this skin applies. */
+  bg: string;
+  /** The skin's signature colour, shown alongside the background rather than instead of it. */
+  accent: string;
 };
 
 export const THEMES: readonly Theme[] = [
-  { id: "mono", label: "Vercel mono", blurb: "black and white, Geist", swatch: "#0a0a0a" },
-  { id: "dark", label: "Dark ops", blurb: "near-black, electric violet", swatch: "#b7a6ff" },
-  { id: "warm", label: "Warm and human", blurb: "cream, terracotta", swatch: "#c05c36" },
-  { id: "expressive", label: "Expressive", blurb: "electric violet, high contrast", swatch: "#5b2cff" },
+  { id: "mono", label: "Vercel mono", blurb: "black and white, Geist", bg: "#f7f7f7", accent: "#0a0a0a" },
+  { id: "dark", label: "Dark ops", blurb: "near-black, electric violet", bg: "#0a0a0a", accent: "#b7a6ff" },
+  { id: "warm", label: "Warm and human", blurb: "cream, terracotta", bg: "#f6f1e8", accent: "#c05c36" },
+  { id: "expressive", label: "Expressive", blurb: "electric violet, high contrast", bg: "#fcfbff", accent: "#5b2cff" },
 ] as const;
 
 // mono first. Leading with the Vercel-native look is the right first impression for this audience.
