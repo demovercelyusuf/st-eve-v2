@@ -94,7 +94,7 @@ export function AgentMessage({
       from={message.role}
     >
       <MessageContent>
-        {segments.map((segment) => {
+        {segments.map((segment, segmentIndex) => {
           if (segment.kind === "content") {
             const { index, part } = segment;
             return (
@@ -110,10 +110,12 @@ export function AgentMessage({
             );
           }
 
-          // The run is still live only while the turn's trailing part is one of its own — once the
-          // answer starts streaming below, the work is done and the group settles to a static label.
-          const live =
-            isStreaming && isAssistant && segment.parts.some((p) => p.index === lastPartIndex);
+          // The run is still live only while it is the turn's trailing segment — once the answer (or
+          // brief) starts rendering below, the work is done and the group settles to a static label.
+          // Keyed off the segment, not the trailing part index: eve slips a step-start between steps
+          // and that part belongs to no segment, so "contains the last part" blinks false mid-run and
+          // the header flickered between "Working..." and the step count.
+          const live = isStreaming && isAssistant && segmentIndex === segments.length - 1;
           return (
             <WorkSegment
               canRespond={canRespond}
