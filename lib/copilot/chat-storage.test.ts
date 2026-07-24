@@ -1,6 +1,16 @@
 import type { HandleMessageStreamEvent, SessionState } from "eve/client";
 import { describe, expect, it } from "vitest";
-import { deserializeChat, serializeChat, trimToBudget } from "./chat-storage";
+import {
+  type ChatIndex,
+  type ChatMeta,
+  capOpenChats,
+  deserializeChat,
+  generalChat,
+  parseChatIndex,
+  serializeChat,
+  serializeChatIndex,
+  trimToBudget,
+} from "./chat-storage";
 
 // The serialize and trim halves are pure, so they are tested directly without a DOM. The thin
 // localStorage wrappers around them hold no logic worth pinning.
@@ -138,5 +148,104 @@ describe("trimToBudget", () => {
     const events = [event("message.appended", { text: pad(4_000) })];
 
     expect(trimToBudget(events, 1_000)).toEqual([]);
+  });
+});
+
+const meta = (id: string, updatedAt = 0, accountId: string | null = null): ChatMeta => ({
+  id,
+  accountId,
+  label: id,
+  updatedAt,
+});
+
+describe("parseChatIndex", () => {
+  it("round-trips an index of open chats", () => {
+    const index: ChatIndex = {
+      activeId: "ACC-2041",
+      chats: [generalChat(), meta("ACC-2041", 5, "ACC-2041")],
+    };
+
+    expect(parseChatIndex(serializeChatIndex(index))).toEqual(index);
+  });
+
+  it("returns null for nothing stored or malformed JSON", () => {
+    expect(parseChatIndex(null)).toBeNull();
+    expect(parseChatIndex("")).toBeNull();
+    expect(parseChatIndex("{ not json")).toBeNull();
+  });
+
+  it("discards a value written by a different index version", () => {
+    const stale = JSON.stringify({ version: 0, activeId: "general", chats: [generalChat()] });
+
+    expect(parseChatIndex(stale)).toBeNull();
+  });
+
+  it("returns null when every chat row is malformed rather than keeping an empty index", () => {
+    const broken = JSON.stringify({ version: 1, activeId: "general", chats: [{ id: 42 }] });
+
+    expect(parseChatIndex(broken)).toBeNull();
+  });
+
+  it("drops individual malformed rows but keeps the valid ones", () => {
+    const mixed = JSON.stringify({
+      version: 1,
+      activeId: "general",
+      chats: [generalChat(), { id: "ACC-1", label: "missing bits" }],
+    });
+
+    expect(parseChatIndex(mixed)?.chats).toEqual([generalChat()]);
+  });
+
+  it("repairs an activeId that no longer names an open chat", () => {
+    const orphaned = JSON.stringify({ version: 1, activeId: "ACC-gone", chats: [generalChat()] });
+
+    // Falls back to the first open chat rather than pointing at a slot that will never mount.
+    expect(parseChatIndex(orphaned)?.activeId).toBe("general");
+  });
+});
+
+describe("capOpenChats", () => {
+  it("leaves the index untouched when it is within the cap", () => {
+    const index: ChatIndex = { activeId: "a", chats: [meta("a"), meta("b")] };
+
+    expect(capOpenChats(index, 5)).toEqual({ index, closed: [] });
+  });
+
+  it("closes the least-recently-updated chats to get back to the cap", () => {
+    const index: ChatIndex = {
+      activeId: "a",
+      chats: [meta("a", 100), meta("b", 1), meta("c", 2), meta("d", 3)],
+    };
+
+    const { index: capped, closed } = capOpenChats(index, 2);
+
+    // Two must go; the oldest two of the closable set (b, c) are the victims, and the newest survivor (d)
+    // and the active chat (a) stay.
+    expect(closed).toEqual(["b", "c"]);
+    expect(capped.chats.map((c) => c.id)).toEqual(["a", "d"]);
+  });
+
+  it("never closes the active chat even when it is the oldest", () => {
+    const index: ChatIndex = {
+      activeId: "old",
+      chats: [meta("old", 0), meta("new1", 10), meta("new2", 11)],
+    };
+
+    const { index: capped, closed } = capOpenChats(index, 2);
+
+    expect(closed).not.toContain("old");
+    expect(capped.chats.some((c) => c.id === "old")).toBe(true);
+  });
+
+  it("never closes a protected (streaming) chat", () => {
+    const index: ChatIndex = {
+      activeId: "a",
+      chats: [meta("a", 100), meta("streaming", 0), meta("idle", 1)],
+    };
+
+    const { closed } = capOpenChats(index, 2, ["streaming"]);
+
+    // The oldest closable is the streaming chat, but it is protected, so the idle one is closed instead.
+    expect(closed).toEqual(["idle"]);
   });
 });
