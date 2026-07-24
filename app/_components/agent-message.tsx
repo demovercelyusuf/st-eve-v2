@@ -7,6 +7,7 @@ import type {
   EveMessagePart,
 } from "eve/react";
 import {
+  BrainIcon,
   CheckCircleIcon,
   ExternalLinkIcon,
   FileIcon,
@@ -124,7 +125,7 @@ function AgentMessagePart({
           {part.text}
         </MessageResponse>
       );
-    case "reasoning":
+    case "reasoning": {
       // Open on the full page, where there is room to read it. In the dock an expanded reasoning
       // block would push the answer itself out of view, so it starts collapsed and stays available.
       //
@@ -135,12 +136,36 @@ function AgentMessagePart({
       // the block shimmers "Thinking..." under a finished brief for as long as the page is open.
       // A part with other parts after it, or a turn that has stopped, is not thinking by definition,
       // which is a fact this surface can establish on its own without waiting to be told.
+      const isThinking = part.state === "streaming" && isLive;
+
+      // A finished reasoning step routinely carries no visible text: the provider computes a thinking
+      // duration but returns the reasoning itself redacted, or the step only routed to a tool. Left
+      // to render through the normal block, that becomes a "Thought for 1 second" row whose chevron
+      // opens onto nothing but the content block's top margin — a disclosure that reveals a blank
+      // line, which reads as a broken control.
+      //
+      // Rather than drop it, leave a plain marker so the transcript still records that the model
+      // paused — but a non-interactive one: no chevron, no hover affordance, nothing that invites a
+      // click that can't pay off. The label stays duration-agnostic on purpose: the duration is
+      // measured by the block that never rendered for a step restored on reload, so it isn't reliably
+      // known here, and "a moment" is true either way. The live case keeps its "Thinking..." shimmer
+      // above via the normal block, so this only ever stands in after the step has completed empty.
+      if (!isThinking && part.text.trim() === "") {
+        return (
+          <p className="not-prose mb-4 flex items-center gap-2 text-muted-foreground text-sm">
+            <BrainIcon className="size-4" />
+            Thought for a moment
+          </p>
+        );
+      }
+
       return (
-        <Reasoning defaultOpen={!compact} isStreaming={part.state === "streaming" && isLive}>
+        <Reasoning defaultOpen={!compact} isStreaming={isThinking}>
           <ReasoningTrigger />
           <ReasoningContent>{part.text}</ReasoningContent>
         </Reasoning>
       );
+    }
     case "file":
       return <AttachmentPart part={part} />;
     case "authorization":
