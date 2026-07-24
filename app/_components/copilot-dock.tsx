@@ -21,7 +21,7 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { cn } from "@/lib/utils";
 import { AgentMessage } from "./agent-message";
-import { AgentStatusDot } from "./agent-status-dot";
+import { ChatSwitcher } from "./chat-switcher";
 import { ModelRouter } from "./model-router";
 import { Wordmark } from "./wordmark";
 import { useCopilot } from "./copilot-provider";
@@ -112,7 +112,7 @@ export function CopilotDock() {
   }, [isOpen]);
 
   const handleSubmit = async (message: PromptInputMessage) => {
-    if (!isSendable(message) || isBusy(agent.status)) {
+    if (!agent || !isSendable(message) || isBusy(agent.status)) {
       return;
     }
     // Same event as the full page, different surface. Whether people use the dock or go to /chat is
@@ -172,7 +172,12 @@ export function CopilotDock() {
     );
   }
 
-  const isEmpty = agent.data.messages.length === 0;
+  // The active chat's agent is undefined for the one paint before its session registers. Treat that as an
+  // empty, idle conversation with a disabled composer rather than special-casing every read below.
+  const messages = agent?.data.messages ?? [];
+  const status = agent?.status ?? "ready";
+  const error = agent?.error;
+  const isEmpty = messages.length === 0;
 
   return (
     // role="dialog" without aria-modal, which is the honest description: the page behind stays live
@@ -215,7 +220,9 @@ export function CopilotDock() {
           }}
         />
         <Wordmark className="ml-1.5" showDot={false} size="sm" />
-        <AgentStatusDot status={agent.status} />
+        {/* The switcher carries the active chat's status dot, names the conversation on screen, and is the
+            way to a second account without leaving the one you are on. */}
+        <ChatSwitcher compact />
         <Link
           className="ml-auto rounded-md px-2 py-1 text-muted-foreground text-xs transition-colors hover:bg-muted hover:text-foreground"
           href="/chat"
@@ -244,11 +251,11 @@ export function CopilotDock() {
             error string sets this column's min-content width, pushes against the fixed-width router
             rail and gets clipped by the panel. */}
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-      {agent.error ? (
+      {error ? (
         <div className="shrink-0 px-3 pt-2">
           <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-2.5 py-2 text-xs">
             <AlertCircleIcon className="mt-0.5 size-3.5 shrink-0 text-destructive" />
-            <p className="wrap-anywhere text-muted-foreground">{agent.error.message}</p>
+            <p className="wrap-anywhere text-muted-foreground">{error.message}</p>
           </div>
         </div>
       ) : null}
@@ -263,7 +270,7 @@ export function CopilotDock() {
               <button
                 className="rounded-full border border-border px-2.5 py-1 text-left text-muted-foreground text-xs transition-colors hover:border-foreground/30 hover:text-foreground"
                 key={opener}
-                onClick={() => void agent.send({ message: opener })}
+                onClick={() => agent && void agent.send({ message: opener })}
                 type="button"
               >
                 {opener}
@@ -274,16 +281,14 @@ export function CopilotDock() {
       ) : (
         <Conversation className="min-h-0 flex-1">
           <ConversationContent className="gap-5 p-3">
-            {agent.data.messages.map((message, index) => (
+            {messages.map((message, index) => (
               <AgentMessage
-                canRespond={!isBusy(agent.status)}
+                canRespond={!isBusy(status)}
                 compact
-                isStreaming={
-                  agent.status === "streaming" && index === agent.data.messages.length - 1
-                }
+                isStreaming={status === "streaming" && index === messages.length - 1}
                 key={message.id}
                 message={message}
-                onInputResponses={(inputResponses) => agent.send({ inputResponses })}
+                onInputResponses={(inputResponses) => agent?.send({ inputResponses })}
               />
             ))}
           </ConversationContent>
@@ -300,7 +305,7 @@ export function CopilotDock() {
                 className="min-h-14"
                 placeholder="Ask about an account…"
               />
-              <PromptInputSubmit onStop={agent.stop} status={agent.status} />
+              <PromptInputSubmit onStop={() => agent?.stop()} status={status} />
             </PromptInput>
           </div>
         </div>
@@ -308,11 +313,7 @@ export function CopilotDock() {
         {/* Needs width and height both, hence roomy rather than sm. On a phone the panel is already
             a bottom sheet and 13rem of routing table would take the conversation's whole width; in
             landscape it fits sideways and then has no vertical room to render into. */}
-        <ModelRouter
-          busy={isBusy(agent.status)}
-          className="hidden roomy:flex"
-          messages={agent.data.messages}
-        />
+        <ModelRouter busy={isBusy(status)} className="hidden roomy:flex" messages={messages} />
       </div>
     </div>
   );
