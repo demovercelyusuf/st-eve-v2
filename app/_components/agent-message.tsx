@@ -7,7 +7,9 @@ import type {
   EveMessagePart,
 } from "eve/react";
 import {
+  BrainIcon,
   CheckCircleIcon,
+  ChevronDownIcon,
   ExternalLinkIcon,
   FileIcon,
   ImageIcon,
@@ -19,6 +21,7 @@ import { BriefPreview } from "@/app/_components/brief-preview";
 import type { RenderableBrief } from "@/lib/brief/render";
 import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
 import { Reasoning, ReasoningContent, ReasoningTrigger } from "@/components/ai-elements/reasoning";
+import { Shimmer } from "@/components/ai-elements/shimmer";
 import {
   Tool,
   ToolContent,
@@ -27,6 +30,7 @@ import {
   ToolOutput,
 } from "@/components/ai-elements/tool";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 
 // One eve message, rendered part by part: text, reasoning, tool calls, and the input requests a tool
@@ -76,6 +80,13 @@ export function AgentMessage({
   // The trailing part of a turn that is still running is the only part anything can still be
   // happening to. Everything above it has been overtaken: the model moved on and produced this.
   const lastPartIndex = message.parts.length - 1;
+  const isAssistant = message.role === "assistant";
+
+  // The work — the thinking and the tool calls — is folded into one collapsed disclosure per run, so
+  // a turn that read nine records shows a single "Thought for a moment" line instead of nine cards,
+  // and the reader gets the answer first. See buildSegments for what counts as work and what stays
+  // in the open (the answer, the brief, and anything still waiting on the reader).
+  const segments = buildSegments(message.parts);
 
   return (
     <Message
@@ -83,19 +94,161 @@ export function AgentMessage({
       from={message.role}
     >
       <MessageContent>
-        {message.parts.map((part, index) => (
+        {segments.map((segment, segmentIndex) => {
+          if (segment.kind === "content") {
+            const { index, part } = segment;
+            return (
+              <AgentMessagePart
+                canRespond={canRespond}
+                compact={compact}
+                key={partKey(part, index)}
+                onInputResponses={onInputResponses}
+                isLive={isStreaming && isAssistant && index === lastPartIndex}
+                part={part}
+                showCaret={isStreaming && isAssistant && index === lastTextIndex}
+              />
+            );
+          }
+
+          // The run is still live only while it is the turn's trailing segment — once the answer (or
+          // brief) starts rendering below, the work is done and the group settles to a static label.
+          // Keyed off the segment, not the trailing part index: eve slips a step-start between steps
+          // and that part belongs to no segment, so "contains the last part" blinks false mid-run and
+          // the header flickered between "Working..." and the step count.
+          const live = isStreaming && isAssistant && segmentIndex === segments.length - 1;
+          return (
+            <WorkSegment
+              canRespond={canRespond}
+              compact={compact}
+              key={`work:${segment.parts[0].index}`}
+              live={live}
+              onInputResponses={onInputResponses}
+              parts={segment.parts}
+            />
+          );
+        })}
+      </MessageContent>
+    </Message>
+  );
+}
+
+type IndexedPart = { readonly index: number; readonly part: EveMessagePart };
+
+type MessageSegment =
+  | ({ readonly kind: "content" } & IndexedPart)
+  | { readonly kind: "work"; readonly parts: IndexedPart[] };
+
+// Splits a message into what the reader sees straight away and what folds into a "Thought for a
+// moment" group. Work — reasoning and ordinary tool calls — accumulates into runs; anything else
+// breaks the run and renders in the open. step-start carries nothing to draw and must not split a
+// run, so a reasoning/tool/step-start/tool sequence still collapses as one.
+function buildSegments(parts: readonly EveMessagePart[]): MessageSegment[] {
+  const segments: MessageSegment[] = [];
+  parts.forEach((part, index) => {
+    if (part.type === "step-start") return;
+    if (isWorkPart(part)) {
+      const last = segments.at(-1);
+      if (last?.kind === "work") {
+        last.parts.push({ index, part });
+      } else {
+        segments.push({ kind: "work", parts: [{ index, part }] });
+      }
+      return;
+    }
+    segments.push({ index, kind: "content", part });
+  });
+  return segments;
+}
+
+// Work is what belongs behind the disclosure: the model's thinking, and the tool calls it makes to
+// get to an answer. Two kinds of tool call are deliberately not work and stay in the open — a brief
+// (the product itself, never a step toward it) and anything still waiting on the reader, because a
+// prompt folded into a collapsed group is a prompt no one answers.
+function isWorkPart(part: EveMessagePart): boolean {
+  if (part.type === "reasoning") return true;
+  if (part.type === "dynamic-tool") {
+    return shippedBrief(part) === null && !awaitingUser(part);
+  }
+  return false;
+}
+
+// A tool call the reader has to act on before the turn can move: an approval it must grant, or an
+// input request it hasn't answered yet. Once answered, it stops being actionable and is free to fold
+// away with the rest of the work.
+function awaitingUser(part: EveDynamicToolPart): boolean {
+  if (part.state === "approval-requested") return true;
+  const eve = part.toolMetadata?.eve;
+  return eve?.inputRequest !== undefined && eve?.inputResponse === undefined;
+}
+
+function WorkSegment({
+  canRespond,
+  compact,
+  live,
+  onInputResponses,
+  parts,
+}: {
+  readonly canRespond: boolean;
+  readonly compact: boolean;
+  /** The turn is still running and its trailing part belongs to this run. */
+  readonly live: boolean;
+  readonly onInputResponses: (responses: readonly AgentInputResponse[]) => void | Promise<void>;
+  readonly parts: readonly IndexedPart[];
+}) {
+  const toolCount = parts.reduce((n, { part }) => (part.type === "dynamic-tool" ? n + 1 : n), 0);
+
+  // An empty reasoning step carries no text; inside the group it would only be a blank line, and the
+  // group's own label already says the model thought. Drop those and disclose what is left.
+  const disclosed = parts.filter(
+    ({ part }) => !(part.type === "reasoning" && part.text.trim() === ""),
+  );
+
+  // The run was only an empty thought — nothing to expand into. Leave the inert marker (no chevron,
+  // no dead click) rather than a disclosure that opens onto nothing.
+  if (disclosed.length === 0) {
+    return (
+      <p className="not-prose mb-4 flex items-center gap-2 text-muted-foreground text-sm">
+        <BrainIcon className="size-4" />
+        Thought for a moment
+      </p>
+    );
+  }
+
+  return (
+    <Collapsible className="group not-prose mb-4 w-full" defaultOpen={false}>
+      <CollapsibleTrigger className="flex w-full items-center gap-2 text-muted-foreground text-sm transition-colors hover:text-foreground">
+        <BrainIcon className="size-4 shrink-0" />
+        {live ? (
+          <Shimmer as="span" duration={1.5}>
+            Working…
+          </Shimmer>
+        ) : (
+          <span>
+            Thought for a moment
+            {toolCount > 0 ? (
+              <span className="text-muted-foreground/70">
+                {" · "}
+                {toolCount} {toolCount === 1 ? "step" : "steps"}
+              </span>
+            ) : null}
+          </span>
+        )}
+        <ChevronDownIcon className="size-4 shrink-0 transition-transform group-data-[state=open]:rotate-180" />
+      </CollapsibleTrigger>
+      <CollapsibleContent className="data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 mt-3 ml-2 border-muted border-l pl-4 data-[state=closed]:animate-out data-[state=open]:animate-in">
+        {disclosed.map(({ index, part }) => (
           <AgentMessagePart
             canRespond={canRespond}
             compact={compact}
+            isLive={false}
             key={partKey(part, index)}
             onInputResponses={onInputResponses}
-            isLive={isStreaming && message.role === "assistant" && index === lastPartIndex}
             part={part}
-            showCaret={isStreaming && message.role === "assistant" && index === lastTextIndex}
+            showCaret={false}
           />
         ))}
-      </MessageContent>
-    </Message>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 
@@ -124,7 +277,7 @@ function AgentMessagePart({
           {part.text}
         </MessageResponse>
       );
-    case "reasoning":
+    case "reasoning": {
       // Open on the full page, where there is room to read it. In the dock an expanded reasoning
       // block would push the answer itself out of view, so it starts collapsed and stays available.
       //
@@ -135,12 +288,36 @@ function AgentMessagePart({
       // the block shimmers "Thinking..." under a finished brief for as long as the page is open.
       // A part with other parts after it, or a turn that has stopped, is not thinking by definition,
       // which is a fact this surface can establish on its own without waiting to be told.
+      const isThinking = part.state === "streaming" && isLive;
+
+      // A finished reasoning step routinely carries no visible text: the provider computes a thinking
+      // duration but returns the reasoning itself redacted, or the step only routed to a tool. Left
+      // to render through the normal block, that becomes a "Thought for 1 second" row whose chevron
+      // opens onto nothing but the content block's top margin — a disclosure that reveals a blank
+      // line, which reads as a broken control.
+      //
+      // Rather than drop it, leave a plain marker so the transcript still records that the model
+      // paused — but a non-interactive one: no chevron, no hover affordance, nothing that invites a
+      // click that can't pay off. The label stays duration-agnostic on purpose: the duration is
+      // measured by the block that never rendered for a step restored on reload, so it isn't reliably
+      // known here, and "a moment" is true either way. The live case keeps its "Thinking..." shimmer
+      // above via the normal block, so this only ever stands in after the step has completed empty.
+      if (!isThinking && part.text.trim() === "") {
+        return (
+          <p className="not-prose mb-4 flex items-center gap-2 text-muted-foreground text-sm">
+            <BrainIcon className="size-4" />
+            Thought for a moment
+          </p>
+        );
+      }
+
       return (
-        <Reasoning defaultOpen={!compact} isStreaming={part.state === "streaming" && isLive}>
+        <Reasoning defaultOpen={!compact} isStreaming={isThinking}>
           <ReasoningTrigger />
           <ReasoningContent>{part.text}</ReasoningContent>
         </Reasoning>
       );
+    }
     case "file":
       return <AttachmentPart part={part} />;
     case "authorization":
